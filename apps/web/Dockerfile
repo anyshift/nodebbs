@@ -5,6 +5,9 @@ FROM node:20-alpine AS base
 FROM base AS deps
 WORKDIR /app
 
+# 启用 pnpm（推荐指定版本）
+RUN corepack enable && corepack prepare pnpm@10.21.0 --activate
+
 # 复制依赖文件
 COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
 
@@ -17,8 +20,11 @@ COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
 #   fi
 
 # 直接使用 pnpm 安装依赖
-RUN corepack enable pnpm \
-    && pnpm install --no-frozen-lockfile --network-concurrency=1
+# RUN corepack enable pnpm \
+#     && pnpm install --no-frozen-lockfile --network-concurrency=1
+
+RUN --mount=type=cache,target=/root/.pnpm-store \
+    pnpm install --no-frozen-lockfile --prefer-offline
 
 # 构建阶段
 FROM base AS builder
