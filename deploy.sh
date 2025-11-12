@@ -46,37 +46,50 @@ print_header() {
 # 选择部署环境
 select_environment() {
     echo ""
-    print_info "请选择部署环境:"
+    print_info "请根据服务器配置选择部署环境:"
     echo ""
-    echo "  1) 开发环境 (Development)"
-    echo "     - 暴露所有服务端口"
-    echo "     - 挂载源代码支持热重载"
-    echo "     - 默认配置适合本地开发"
+    echo "  1) 标准生产环境 (Production - 2C4G+) [推荐]"
+    echo "     - 内存限制: API 768M, Web 768M, PostgreSQL 512M"
+    echo "     - 完整的资源限制和日志管理"
     echo ""
-    echo "  2) 生产环境 (Production)"
-    echo "     - 只暴露必要端口"
-    echo "     - 资源限制和日志管理"
-    echo "     - 生产级别优化配置"
+    echo "  2) 低配环境 (Low Memory - 1C1G/1C2G)"
+    echo "     - 内存限制: API 512M, Web 512M, PostgreSQL 256M"
+    echo "     - 启动时间较长，适合小流量场景"
+    echo ""
+    echo "  3) 基础环境 (Basic - 用于测试)"
+    echo "     - 无资源限制（仅用于本地测试，不推荐生产使用）"
+    echo "     - 暴露所有服务端口便于调试"
     echo ""
 
     while true; do
-        read -p "请选择 [1-2]: " -n 1 -r
+        read -p "请选择 [1-3, 默认 1]: " -n 1 -r
         echo
+        # 如果用户直接回车，默认选择 1
+        if [ -z "$REPLY" ]; then
+            REPLY=1
+        fi
         case $REPLY in
             1)
-                ENVIRONMENT="development"
-                COMPOSE_CMD="docker compose"
-                print_success "已选择: 开发环境"
+                ENVIRONMENT="production"
+                COMPOSE_CMD="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
+                print_success "已选择: 标准生产环境 (2C4G+)"
                 break
                 ;;
             2)
-                ENVIRONMENT="production"
-                COMPOSE_CMD="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
-                print_success "已选择: 生产环境"
+                ENVIRONMENT="lowmem"
+                COMPOSE_CMD="docker compose -f docker-compose.yml -f docker-compose.lowmem.yml"
+                print_success "已选择: 低配环境 (1C1G/1C2G)"
+                break
+                ;;
+            3)
+                ENVIRONMENT="basic"
+                COMPOSE_CMD="docker compose"
+                print_success "已选择: 基础环境 (仅用于测试)"
+                print_warning "注意: 此环境无资源限制，不推荐用于生产部署"
                 break
                 ;;
             *)
-                print_error "无效选择，请输入 1 或 2"
+                print_error "无效选择，请输入 1-3"
                 ;;
         esac
     done
@@ -135,7 +148,7 @@ check_env() {
     errors=0
 
     if [ "$POSTGRES_PASSWORD" = "your_secure_postgres_password_here" ] || [ "$POSTGRES_PASSWORD" = "postgres_password" ]; then
-        if [ "$ENVIRONMENT" = "production" ]; then
+        if [ "$ENVIRONMENT" = "production" ] || [ "$ENVIRONMENT" = "lowmem" ]; then
             print_error "生产环境必须修改 POSTGRES_PASSWORD"
             errors=$((errors + 1))
         else
@@ -145,7 +158,7 @@ check_env() {
     fi
 
     if [ "$REDIS_PASSWORD" = "your_secure_redis_password_here" ] || [ "$REDIS_PASSWORD" = "redis_password" ]; then
-        if [ "$ENVIRONMENT" = "production" ]; then
+        if [ "$ENVIRONMENT" = "production" ] || [ "$ENVIRONMENT" = "lowmem" ]; then
             print_error "生产环境必须修改 REDIS_PASSWORD"
             errors=$((errors + 1))
         else
@@ -155,7 +168,7 @@ check_env() {
     fi
 
     if [ "$JWT_SECRET" = "change-this-to-a-secure-random-string-in-production" ]; then
-        if [ "$ENVIRONMENT" = "production" ]; then
+        if [ "$ENVIRONMENT" = "production" ] || [ "$ENVIRONMENT" = "lowmem" ]; then
             print_error "生产环境必须修改 JWT_SECRET"
             errors=$((errors + 1))
         else
@@ -165,7 +178,7 @@ check_env() {
     fi
 
     # 生产环境额外检查
-    if [ "$ENVIRONMENT" = "production" ]; then
+    if [ "$ENVIRONMENT" = "production" ] || [ "$ENVIRONMENT" = "lowmem" ]; then
         if [ -z "$CORS_ORIGIN" ] || [ "$CORS_ORIGIN" = "*" ]; then
             print_warning "生产环境建议设置具体的 CORS_ORIGIN"
             warnings=$((warnings + 1))
@@ -268,10 +281,25 @@ show_info() {
     echo ""
 
     if [ "$ENVIRONMENT" = "production" ]; then
-        echo -e "${YELLOW}注意:${NC}"
+        echo -e "${YELLOW}生产环境提示:${NC}"
+        echo -e "  - 资源配置: API 768M, Web 768M (适合 2C4G+ 服务器)"
         echo -e "  - 数据库和 Redis 端口未暴露到主机（仅内部访问）"
         echo -e "  - 已启用资源限制和日志管理"
-        echo -e "  - 建议配置反向代理 (nginx) 用于生产环境"
+        echo -e "  - 建议配置反向代理 (nginx/caddy) 用于生产环境"
+        echo ""
+    elif [ "$ENVIRONMENT" = "lowmem" ]; then
+        echo -e "${YELLOW}低配环境提示:${NC}"
+        echo -e "  - 资源配置: API 512M, Web 512M (适合 1C1G/1C2G 服务器)"
+        echo -e "  - 启动时间可能较长，请耐心等待"
+        echo -e "  - 数据库和 Redis 端口未暴露到主机（仅内部访问）"
+        echo -e "  - 适合个人项目和小流量场景"
+        echo -e "  - 建议配置反向代理 (nginx/caddy) 用于生产环境"
+        echo ""
+    elif [ "$ENVIRONMENT" = "basic" ]; then
+        echo -e "${YELLOW}基础环境提示:${NC}"
+        echo -e "  - 无资源限制，仅用于本地测试"
+        echo -e "  - 所有服务端口已暴露，便于调试"
+        echo -e "  - ${RED}不推荐用于生产部署${NC}"
         echo ""
     fi
 
