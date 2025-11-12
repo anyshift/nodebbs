@@ -71,14 +71,6 @@ const AboutPage = () => {
           <p className="mt-4 text-lg text-muted-foreground">
             无论您是想提出一个问题，分享一个项目，还是帮助他人，这里都有您的位置。立即加入，与我们一同构建下一个伟大的技术社区。
           </p>
-          <div className="mt-8">
-            <a
-              href="/register"
-              className="inline-block bg-primary text-primary-foreground font-semibold px-8 py-3 rounded-lg shadow-md hover:bg-primary/90 transition-colors duration-300"
-            >
-              立即注册
-            </a>
-          </div>
         </div>
       </div>
     </div>

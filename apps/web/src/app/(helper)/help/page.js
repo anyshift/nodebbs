@@ -37,7 +37,7 @@ const HelpPage = () => {
     },
     {
       question: '社区的基本准则是什么？',
-      answer: '我们致力于维护一个友好、尊重和专业的交流环境。请确保您的言论具有建设性，避免人身攻击和发布垃圾广告。更多详情请参阅我们的 <a href="/terms" class="text-primary hover:underline">服务条款</a>。',
+      answer: '我们致力于维护一个友好、尊重和专业的交流环境。请确保您的言论具有建设性，避免人身攻击和发布垃圾广告。更多详情请参阅我们的服务条款。',
       icon: <Shield className="w-6 h-6" />,
     },
   ];

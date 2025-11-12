@@ -14,9 +14,7 @@ export default function Footer() {
   ];
 
   const socialLinks = [
-    { icon: Github, href: 'https://github.com', label: 'GitHub' },
-    { icon: Twitter, href: 'https://twitter.com', label: 'Twitter' },
-    { icon: Mail, href: 'mailto:contact@example.com', label: 'Email' },
+    { icon: Github, href: 'https://github.com/aiprojecthub/nodebbs', label: 'GitHub' }
   ];
 
   return (
