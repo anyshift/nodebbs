@@ -3,7 +3,7 @@ import RequireAuth from '@/components/auth/RequireAuth';
 import StickySidebar from '@/components/forum/StickySidebar';
 
 export const metadata = {
-  title: '个人中心 - 技术论坛',
+  title: '个人中心',
   description: '管理你的话题和个人设置',
 };
 
