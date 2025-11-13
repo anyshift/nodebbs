@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Heart,
@@ -11,6 +12,8 @@ import {
   Flag,
   Trash2,
   Reply,
+  AlertCircle,
+  Clock,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -42,6 +45,12 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded }) {
 
   // 本地状态
   const [localReply, setLocalReply] = useState(reply);
+
+  // 检查审核状态
+  const isPending = localReply.approvalStatus === 'pending';
+  const isRejected = localReply.approvalStatus === 'rejected';
+  const isOwnReply = user?.id === localReply.userId;
+  const canInteract = !isPending && !isRejected; // 只有已批准的回复可以点赞和回复
 
   // 切换点赞状态
   const handleTogglePostLike = async (postId, isLiked) => {
@@ -182,7 +191,13 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded }) {
   return (
     <>
       <div
-        className='bg-card border border-border rounded-lg hover:border-border/80 transition-colors group'
+        className={`bg-card border rounded-lg hover:border-border/80 transition-colors group ${
+          isPending
+            ? 'border-chart-5/30 bg-chart-5/5'
+            : isRejected
+            ? 'border-destructive/30 bg-destructive/5'
+            : 'border-border'
+        }`}
         data-post-number={localReply.postNumber}
       >
         {/* 回复内容区域 */}
@@ -214,6 +229,31 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded }) {
                 <span className='text-xs font-mono text-muted-foreground/50'>
                   #{localReply.postNumber}
                 </span>
+                {/* 审核状态标记 */}
+                {isPending && (
+                  <>
+                    <span className='text-muted-foreground/30'>·</span>
+                    <Badge
+                      variant='outline'
+                      className='text-chart-5 border-chart-5 text-xs h-5 gap-1'
+                    >
+                      <Clock className='h-3 w-3' />
+                      待审核
+                    </Badge>
+                  </>
+                )}
+                {isRejected && (
+                  <>
+                    <span className='text-muted-foreground/30'>·</span>
+                    <Badge
+                      variant='outline'
+                      className='text-destructive border-destructive text-xs h-5 gap-1'
+                    >
+                      <AlertCircle className='h-3 w-3' />
+                      已拒绝
+                    </Badge>
+                  </>
+                )}
               </div>
             </div>
 
@@ -228,11 +268,16 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded }) {
                     openLoginDialog();
                     return;
                   }
+                  if (!canInteract) {
+                    toast.error('此回复暂时无法回复');
+                    return;
+                  }
                   setReplyingToPostId(localReply.id);
                   setReplyToContent('');
                 }}
-                className='h-7 px-2 text-muted-foreground/60 hover:text-foreground hover:bg-muted/50'
-                title='回复'
+                disabled={!canInteract}
+                className='h-7 px-2 text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed'
+                title={canInteract ? '回复' : '此回复暂时无法回复'}
               >
                 <Reply className='h-3.5 w-3.5' />
               </Button>
@@ -241,18 +286,30 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded }) {
               <Button
                 variant='ghost'
                 size='sm'
-                onClick={() =>
-                  handleTogglePostLike(localReply.id, localReply.isLiked)
-                }
+                onClick={() => {
+                  if (!canInteract) {
+                    toast.error('此回复暂时无法点赞');
+                    return;
+                  }
+                  handleTogglePostLike(localReply.id, localReply.isLiked);
+                }}
                 disabled={
-                  likingPostIds.has(localReply.id) || !isAuthenticated
+                  !canInteract ||
+                  likingPostIds.has(localReply.id) ||
+                  !isAuthenticated
                 }
-                className={`h-7 px-2 ${
+                className={`h-7 px-2 disabled:opacity-50 disabled:cursor-not-allowed ${
                   localReply.isLiked
                     ? 'text-destructive hover:text-destructive/80'
                     : 'text-muted-foreground/60 hover:text-destructive hover:bg-muted/50'
                 }`}
-                title={localReply.isLiked ? '取消点赞' : '点赞'}
+                title={
+                  canInteract
+                    ? localReply.isLiked
+                      ? '取消点赞'
+                      : '点赞'
+                    : '此回复暂时无法点赞'
+                }
               >
                 {likingPostIds.has(localReply.id) ? (
                   <Loader2 className='h-3.5 w-3.5 animate-spin' />

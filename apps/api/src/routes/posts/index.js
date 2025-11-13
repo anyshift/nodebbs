@@ -1,6 +1,6 @@
 import db from '../../db/index.js';
 import { posts, topics, users, likes, notifications, subscriptions, moderationLogs } from '../../db/schema.js';
-import { eq, sql, desc, and, inArray, ne, like } from 'drizzle-orm';
+import { eq, sql, desc, and, inArray, ne, like, or } from 'drizzle-orm';
 import { getSetting } from '../../utils/settings.js';
 
 export default async function postRoutes(fastify, options) {
@@ -86,22 +86,28 @@ export default async function postRoutes(fastify, options) {
       }
     }
 
-    // 如果不是版主/管理员，只显示已批准的内容
-    // 如果是查看自己的回复，显示所有状态
-    // 如果是查看话题，需要检查是否是话题作者
+    // 构建审核状态过滤条件
+    // 规则：
+    // 1. 管理员/版主可以看到所有状态
+    // 2. 用户可以看到：已批准的回复 或 自己的回复（无论状态）
+    // 3. 未登录用户只能看到已批准的回复
     const isModerator = request.user && ['moderator', 'admin'].includes(request.user.role);
-    const isOwnPosts = userId && request.user && userId === request.user.id;
-    
-    // 如果是通过topicId查询，检查是否是话题作者
-    let isTopicAuthor = false;
-    if (topicId && request.user) {
-      const [topic] = await db.select({ userId: topics.userId }).from(topics).where(eq(topics.id, topicId)).limit(1);
-      isTopicAuthor = topic && topic.userId === request.user.id;
+
+    if (!isModerator) {
+      if (request.user) {
+        // 登录用户：显示已批准的回复 或 自己的回复
+        whereConditions.push(
+          or(
+            eq(posts.approvalStatus, 'approved'),
+            eq(posts.userId, request.user.id)
+          )
+        );
+      } else {
+        // 未登录用户：只显示已批准的回复
+        whereConditions.push(eq(posts.approvalStatus, 'approved'));
+      }
     }
-    
-    if (!isModerator && !isOwnPosts && !isTopicAuthor) {
-      whereConditions.push(eq(posts.approvalStatus, 'approved'));
-    }
+    // 管理员/版主：不添加过滤条件，显示所有回复
 
     // Get posts
     const postsList = await db
