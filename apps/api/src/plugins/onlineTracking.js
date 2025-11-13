@@ -4,13 +4,17 @@ import crypto from 'crypto';
 /**
  * 在线用户追踪插件
  * 支持 Redis 或内存存储来追踪在线用户和游客
- * 
+ *
  * 配置选项:
- * - useRedis: 是否使用 Redis (默认: false)
- * - redisClient: Redis 客户端实例 (useRedis=true 时必需)
+ * - useRedis: 是否使用 Redis (默认: 自动检测 fastify.redis 是否可用)
+ * - redisClient: Redis 客户端实例 (默认: 自动使用 fastify.redis)
  * - onlineThreshold: 在线判定阈值，单位毫秒 (默认: 15分钟)
  * - cleanupInterval: 清理间隔，单位毫秒 (默认: 1分钟)
  * - keyPrefix: Redis key 前缀 (默认: 'online:')
+ *
+ * 注意:
+ * - 插件会自动检测 Redis 是否可用，无需手动配置
+ * - 如果 Redis 不可用或连接失败，会自动降级到内存模式
  */
 
 class OnlineTracker {
@@ -222,10 +226,15 @@ class OnlineTracker {
 }
 
 export default fp(async function (fastify, opts) {
+  // 自动检测 Redis 可用性
+  const hasRedis = !!fastify.redis;
+  const useRedis = opts.useRedis !== undefined ? opts.useRedis : hasRedis;
+  const redisClient = opts.redisClient || (hasRedis ? fastify.redis : null);
+
   // 初始化追踪器
   const tracker = new OnlineTracker({
-    useRedis: opts.useRedis || false,
-    redisClient: opts.redisClient,
+    useRedis,
+    redisClient,
     onlineThreshold: opts.onlineThreshold,
     cleanupInterval: opts.cleanupInterval,
     keyPrefix: opts.keyPrefix,
@@ -281,5 +290,5 @@ export default fp(async function (fastify, opts) {
   fastify.log.info(`Online tracking plugin registered (mode: ${tracker.useRedis ? 'Redis' : 'Memory'})`);
 }, {
   name: 'online-tracking',
-  dependencies: [],
+  dependencies: ['redis'],
 });

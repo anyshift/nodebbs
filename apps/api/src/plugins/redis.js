@@ -18,4 +18,6 @@ export default fp(async (fastify) => {
       fastify.log.error('❌ Redis connection failed:', err)
     }
   })
+}, {
+  name: 'redis'
 })
