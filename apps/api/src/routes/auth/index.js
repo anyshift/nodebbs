@@ -133,34 +133,42 @@ export default async function authRoutes(fastify, options) {
         })
         .returning();
 
-      // 创建邮箱验证码
-      const verificationToken = await createEmailVerification(
-        email,
-        newUser.id
-      );
+      // 先检查邮件服务是否配置，避免创建无用的验证码
+      const emailProvider = await fastify.getDefaultEmailProvider();
 
-      // 发送欢迎邮件 + 邮箱验证链接
-      try {
-        await fastify.sendEmail({
-          to: email,
-          template: 'welcome',
-          data: {
-            username: newUser.username,
-            verificationLink: `${
-              process.env.APP_URL || 'http://localhost:3000'
-            }/verify-email?token=${verificationToken}`,
-          },
-        });
-        fastify.log.info(`[注册] 欢迎邮件已发送至 ${email}`);
-      } catch (error) {
-        // 邮件发送失败不应阻止注册流程
-        fastify.log.error(`[注册] 发送欢迎邮件失败: ${error.message}`);
-        // 开发环境下，在日志中显示验证链接
-        fastify.log.info(
-          `[注册] 验证链接: ${
-            process.env.APP_URL || 'http://localhost:3000'
-          }/verify-email?token=${verificationToken}`
+      if (!emailProvider || !emailProvider.isEnabled) {
+        // 邮件服务未配置，记录警告但不阻止注册
+        fastify.log.warn(`[注册] 邮件服务未配置或未启用，跳过发送欢迎邮件和验证链接`);
+      } else {
+        // 创建邮箱验证码
+        const verificationToken = await createEmailVerification(
+          email,
+          newUser.id
         );
+
+        // 发送欢迎邮件 + 邮箱验证链接
+        try {
+          await fastify.sendEmail({
+            to: email,
+            template: 'welcome',
+            data: {
+              username: newUser.username,
+              verificationLink: `${
+                process.env.APP_URL || 'http://localhost:3000'
+              }/verify-email?token=${verificationToken}`,
+            },
+          });
+          fastify.log.info(`[注册] 欢迎邮件已发送至 ${email}`);
+        } catch (error) {
+          // 邮件发送失败不应阻止注册流程
+          fastify.log.error(`[注册] 发送欢迎邮件失败: ${error.message}`);
+          // 开发环境下，在日志中显示验证链接
+          fastify.log.info(
+            `[注册] 验证链接: ${
+              process.env.APP_URL || 'http://localhost:3000'
+            }/verify-email?token=${verificationToken}`
+          );
+        }
       }
 
       // 如果使用了邀请码，标记为已使用
@@ -362,6 +370,15 @@ export default async function authRoutes(fastify, options) {
 
       // Always return success to prevent email enumeration
       if (!user) {
+        return { message: '如果邮箱存在，密码重置链接已发送' };
+      }
+
+      // 先检查邮件服务是否配置，避免创建无用的验证码
+      const emailProvider = await fastify.getDefaultEmailProvider();
+
+      if (!emailProvider || !emailProvider.isEnabled) {
+        // 邮件服务未配置，记录错误但返回成功消息（防止邮箱枚举）
+        fastify.log.error(`[密码重置] 邮件服务未配置或未启用，无法发送重置邮件至 ${email}`);
         return { message: '如果邮箱存在，密码重置链接已发送' };
       }
 
@@ -574,6 +591,16 @@ export default async function authRoutes(fastify, options) {
 
       if (user.isEmailVerified) {
         return reply.code(400).send({ error: '邮箱已经验证过了' });
+      }
+
+      // 先检查邮件服务是否配置
+      const emailProvider = await fastify.getDefaultEmailProvider();
+
+      if (!emailProvider || !emailProvider.isEnabled) {
+        fastify.log.warn(`[重发验证] 邮件服务未配置或未启用`);
+        return reply.code(503).send({
+          error: '邮件服务暂不可用，请联系管理员配置邮件服务'
+        });
       }
 
       // 创建新的验证码
