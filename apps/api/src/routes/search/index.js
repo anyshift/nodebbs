@@ -1,5 +1,5 @@
 import db from '../../db/index.js';
-import { topics, posts, users, categories } from '../../db/schema.js';
+import { topics, posts, users, categories, blockedUsers } from '../../db/schema.js';
 import { eq, sql, desc, and, or, like, ilike } from 'drizzle-orm';
 import { isDev } from '../../utils/env.js';
 
@@ -27,6 +27,33 @@ export default async function searchRoutes(fastify, options) {
       const offset = (page - 1) * limit;
       const searchPattern = `%${q}%`;
 
+      // 获取被拉黑用户列表（双向检查）
+      let blockedUserIds = new Set();
+      if (request.user) {
+        const blockedUsersList = await db
+          .select({
+            blockedUserId: blockedUsers.blockedUserId,
+            userId: blockedUsers.userId
+          })
+          .from(blockedUsers)
+          .where(
+            or(
+              eq(blockedUsers.userId, request.user.id),
+              eq(blockedUsers.blockedUserId, request.user.id)
+            )
+          );
+
+        if (blockedUsersList.length > 0) {
+          blockedUsersList.forEach(block => {
+            if (block.userId === request.user.id) {
+              blockedUserIds.add(block.blockedUserId);
+            } else {
+              blockedUserIds.add(block.userId);
+            }
+          });
+        }
+      }
+
       const results = {
         query: q,
         type,
@@ -53,15 +80,25 @@ export default async function searchRoutes(fastify, options) {
     // Search topics
     if (type === 'all' || type === 'topics') {
       try {
+        // 构建查询条件
+        const topicsConditions = [
+          eq(topics.isDeleted, false),
+          ilike(topics.title, searchPattern)
+        ];
+
+        // 过滤被拉黑用户的话题
+        if (blockedUserIds.size > 0) {
+          topicsConditions.push(
+            sql`${topics.userId} NOT IN (${Array.from(blockedUserIds).join(',')})`
+          );
+        }
+
         // 获取总数
         const [countResult] = await db
           .select({ count: sql`count(*)::int` })
           .from(topics)
-          .where(and(
-            eq(topics.isDeleted, false),
-            ilike(topics.title, searchPattern)
-          ));
-        
+          .where(and(...topicsConditions));
+
         const topicsTotal = countResult?.count || 0;
 
         // 获取数据 - 分步构建查询
@@ -70,10 +107,7 @@ export default async function searchRoutes(fastify, options) {
           .from(topics)
           .innerJoin(categories, eq(topics.categoryId, categories.id))
           .innerJoin(users, eq(topics.userId, users.id))
-          .where(and(
-            eq(topics.isDeleted, false),
-            ilike(topics.title, searchPattern)
-          ))
+          .where(and(...topicsConditions))
           .orderBy(desc(topics.createdAt))
           .limit(limit)
           .offset(offset);
@@ -107,18 +141,28 @@ export default async function searchRoutes(fastify, options) {
     // Search posts (排除话题内容，即 postNumber = 1 的帖子)
     if (type === 'all' || type === 'posts') {
       try {
+        // 构建查询条件
+        const postsConditions = [
+          eq(posts.isDeleted, false),
+          eq(topics.isDeleted, false),
+          sql`${posts.postNumber} > 1`,  // 排除话题内容
+          ilike(posts.content, searchPattern)
+        ];
+
+        // 过滤被拉黑用户的帖子
+        if (blockedUserIds.size > 0) {
+          postsConditions.push(
+            sql`${posts.userId} NOT IN (${Array.from(blockedUserIds).join(',')})`
+          );
+        }
+
         // 获取总数
         const [countResult] = await db
           .select({ count: sql`count(*)::int` })
           .from(posts)
           .innerJoin(topics, eq(posts.topicId, topics.id))
-          .where(and(
-            eq(posts.isDeleted, false),
-            eq(topics.isDeleted, false),
-            sql`${posts.postNumber} > 1`,  // 排除话题内容
-            ilike(posts.content, searchPattern)
-          ));
-        
+          .where(and(...postsConditions));
+
         const postsTotal = countResult?.count || 0;
 
         // 获取数据
@@ -127,12 +171,7 @@ export default async function searchRoutes(fastify, options) {
           .from(posts)
           .innerJoin(topics, eq(posts.topicId, topics.id))
           .innerJoin(users, eq(posts.userId, users.id))
-          .where(and(
-            eq(posts.isDeleted, false),
-            eq(topics.isDeleted, false),
-            sql`${posts.postNumber} > 1`,  // 排除话题内容
-            ilike(posts.content, searchPattern)
-          ))
+          .where(and(...postsConditions))
           .orderBy(desc(posts.createdAt))
           .limit(limit)
           .offset(offset);
@@ -156,17 +195,27 @@ export default async function searchRoutes(fastify, options) {
 
     // Search users
     if (type === 'all' || type === 'users') {
+      // 构建查询条件
+      const usersConditions = [
+        or(
+          ilike(users.username, searchPattern),
+          ilike(users.name, searchPattern)
+        )
+      ];
+
+      // 过滤被拉黑用户
+      if (blockedUserIds.size > 0) {
+        usersConditions.push(
+          sql`${users.id} NOT IN (${Array.from(blockedUserIds).join(',')})`
+        );
+      }
+
       // 获取总数
       const [countResult] = await db
         .select({ count: sql`count(*)::int` })
         .from(users)
-        .where(
-          or(
-            ilike(users.username, searchPattern),
-            ilike(users.name, searchPattern)
-          )
-        );
-      
+        .where(and(...usersConditions));
+
       const usersTotal = countResult?.count || 0;
 
       // 获取数据
@@ -179,12 +228,7 @@ export default async function searchRoutes(fastify, options) {
           bio: users.bio
         })
         .from(users)
-        .where(
-          or(
-            ilike(users.username, searchPattern),
-            ilike(users.name, searchPattern)
-          )
-        )
+        .where(and(...usersConditions))
         .limit(limit)
         .offset(offset);
 

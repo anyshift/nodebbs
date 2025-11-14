@@ -11,6 +11,7 @@ import {
   likes,
   notifications,
   moderationLogs,
+  blockedUsers,
 } from '../../db/schema.js';
 import { eq, sql, desc, and, or, like, inArray } from 'drizzle-orm';
 import slugify from 'slug';
@@ -89,6 +90,40 @@ export default async function topicRoutes(fastify, options) {
 
       // 构建基础查询条件
       const conditions = [];
+
+      // 如果用户已登录，排除被拉黑用户的内容（双向检查）
+      if (request.user) {
+        const blockedUsersList = await db
+          .select({
+            blockedUserId: blockedUsers.blockedUserId,
+            userId: blockedUsers.userId
+          })
+          .from(blockedUsers)
+          .where(
+            or(
+              eq(blockedUsers.userId, request.user.id),
+              eq(blockedUsers.blockedUserId, request.user.id)
+            )
+          );
+
+        if (blockedUsersList.length > 0) {
+          // 收集所有需要排除的用户ID（被我拉黑的 + 拉黑我的）
+          const excludeUserIds = new Set();
+          blockedUsersList.forEach(block => {
+            if (block.userId === request.user.id) {
+              excludeUserIds.add(block.blockedUserId);
+            } else {
+              excludeUserIds.add(block.userId);
+            }
+          });
+
+          if (excludeUserIds.size > 0) {
+            conditions.push(
+              sql`${topics.userId} NOT IN (${Array.from(excludeUserIds).join(',')})`
+            );
+          }
+        }
+      }
 
       // 添加搜索条件
       if (search && search.trim()) {

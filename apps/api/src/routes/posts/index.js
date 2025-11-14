@@ -1,7 +1,31 @@
 import db from '../../db/index.js';
-import { posts, topics, users, likes, notifications, subscriptions, moderationLogs } from '../../db/schema.js';
+import { posts, topics, users, likes, notifications, subscriptions, moderationLogs, blockedUsers } from '../../db/schema.js';
 import { eq, sql, desc, and, inArray, ne, like, or } from 'drizzle-orm';
 import { getSetting } from '../../utils/settings.js';
+
+// 辅助函数：检查两个用户之间是否存在拉黑关系（双向检查）
+async function isBlocked(userId1, userId2) {
+  if (!userId1 || !userId2) return false;
+
+  const [blockRelation] = await db
+    .select()
+    .from(blockedUsers)
+    .where(
+      or(
+        and(
+          eq(blockedUsers.userId, userId1),
+          eq(blockedUsers.blockedUserId, userId2)
+        ),
+        and(
+          eq(blockedUsers.userId, userId2),
+          eq(blockedUsers.blockedUserId, userId1)
+        )
+      )
+    )
+    .limit(1);
+
+  return !!blockRelation;
+}
 
 export default async function postRoutes(fastify, options) {
   // Get posts (by topic or by user)
@@ -47,6 +71,42 @@ export default async function postRoutes(fastify, options) {
 
     // Build query conditions
     let whereConditions = [eq(posts.isDeleted, false)];
+
+    // 如果用户已登录，根据场景决定是否过滤被拉黑用户内容
+    let blockedUserIds = new Set();
+    if (request.user) {
+      const blockedUsersList = await db
+        .select({
+          blockedUserId: blockedUsers.blockedUserId,
+          userId: blockedUsers.userId
+        })
+        .from(blockedUsers)
+        .where(
+          or(
+            eq(blockedUsers.userId, request.user.id),
+            eq(blockedUsers.blockedUserId, request.user.id)
+          )
+        );
+
+      if (blockedUsersList.length > 0) {
+        // 收集所有需要排除的用户ID（被我拉黑的 + 拉黑我的）
+        blockedUsersList.forEach(block => {
+          if (block.userId === request.user.id) {
+            blockedUserIds.add(block.blockedUserId);
+          } else {
+            blockedUserIds.add(block.userId);
+          }
+        });
+
+        // 只在非话题详情页（即时间线、用户列表等场景）完全过滤
+        // 在话题详情页中，保留被拉黑用户的帖子但标记为屏蔽
+        if (!topicId && blockedUserIds.size > 0) {
+          whereConditions.push(
+            sql`${posts.userId} NOT IN (${Array.from(blockedUserIds).join(',')})`
+          );
+        }
+      }
+    }
 
     // 添加搜索条件
     if (search && search.trim()) {
@@ -146,6 +206,11 @@ export default async function postRoutes(fastify, options) {
       }
       // 移除 userIsBanned 字段，不返回给客户端
       delete post.userIsBanned;
+
+      // 标记被拉黑用户的帖子（仅在话题详情页）
+      if (topicId && blockedUserIds.size > 0) {
+        post.isBlockedUser = blockedUserIds.has(post.userId);
+      }
     });
 
     // Check which posts current user has liked
@@ -356,29 +421,37 @@ export default async function postRoutes(fastify, options) {
     }).where(eq(topics.id, topicId));
 
     // Create notification for topic owner if not replying to own topic
+    // 检查是否存在拉黑关系
     if (topic.userId !== request.user.id) {
-      await db.insert(notifications).values({
-        userId: topic.userId,
-        type: 'reply',
-        triggeredByUserId: request.user.id,
-        topicId,
-        postId: newPost.id,
-        message: `${request.user.username} 回复了你的话题`
-      });
+      const blocked = await isBlocked(request.user.id, topic.userId);
+      if (!blocked) {
+        await db.insert(notifications).values({
+          userId: topic.userId,
+          type: 'reply',
+          triggeredByUserId: request.user.id,
+          topicId,
+          postId: newPost.id,
+          message: `${request.user.username} 回复了你的话题`
+        });
+      }
     }
 
     // If replying to specific post, notify that user too
     if (replyToPostId) {
       const [replyToPost] = await db.select().from(posts).where(eq(posts.id, replyToPostId)).limit(1);
       if (replyToPost && replyToPost.userId !== request.user.id && replyToPost.userId !== topic.userId) {
-        await db.insert(notifications).values({
-          userId: replyToPost.userId,
-          type: 'reply',
-          triggeredByUserId: request.user.id,
-          topicId,
-          postId: newPost.id,
-          message: `${request.user.username} 回复了你的帖子`
-        });
+        // 检查是否存在拉黑关系
+        const blocked = await isBlocked(request.user.id, replyToPost.userId);
+        if (!blocked) {
+          await db.insert(notifications).values({
+            userId: replyToPost.userId,
+            type: 'reply',
+            triggeredByUserId: request.user.id,
+            topicId,
+            postId: newPost.id,
+            message: `${request.user.username} 回复了你的帖子`
+          });
+        }
       }
     }
 
@@ -395,16 +468,27 @@ export default async function postRoutes(fastify, options) {
       );
 
     if (subscribers.length > 0) {
-      const notificationValues = subscribers.map(sub => ({
-        userId: sub.userId,
-        type: 'topic_reply',
-        triggeredByUserId: request.user.id,
-        topicId,
-        postId: newPost.id,
-        message: `${request.user.username} 在 "${topic.title}" 中回复了`
-      }));
+      // 过滤掉被拉黑的订阅者
+      const validSubscribers = [];
+      for (const sub of subscribers) {
+        const blocked = await isBlocked(request.user.id, sub.userId);
+        if (!blocked) {
+          validSubscribers.push(sub);
+        }
+      }
 
-      await db.insert(notifications).values(notificationValues);
+      if (validSubscribers.length > 0) {
+        const notificationValues = validSubscribers.map(sub => ({
+          userId: sub.userId,
+          type: 'topic_reply',
+          triggeredByUserId: request.user.id,
+          topicId,
+          postId: newPost.id,
+          message: `${request.user.username} 在 "${topic.title}" 中回复了`
+        }));
+
+        await db.insert(notifications).values(notificationValues);
+      }
     }
 
     const message = contentModerationEnabled 
@@ -635,14 +719,18 @@ export default async function postRoutes(fastify, options) {
 
     // Create notification for post owner
     if (post.userId !== request.user.id) {
-      await db.insert(notifications).values({
-        userId: post.userId,
-        type: 'like',
-        triggeredByUserId: request.user.id,
-        topicId: post.topicId,
-        postId: id,
-        message: `${request.user.username} 赞了你的帖子`
-      });
+      // 检查是否存在拉黑关系
+      const blocked = await isBlocked(request.user.id, post.userId);
+      if (!blocked) {
+        await db.insert(notifications).values({
+          userId: post.userId,
+          type: 'like',
+          triggeredByUserId: request.user.id,
+          topicId: post.topicId,
+          postId: id,
+          message: `${request.user.username} 赞了你的帖子`
+        });
+      }
     }
 
     return { message: 'Post liked successfully' };
