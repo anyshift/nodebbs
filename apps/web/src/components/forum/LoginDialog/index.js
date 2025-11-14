@@ -335,7 +335,7 @@ export default function LoginDialog({ open, onOpenChange }) {
         </DialogHeader>
 
         {/* 登录时显示密码/扫码选项卡 */}
-        {isLogin && !isForgotPassword && qrLoginEnabled ? (
+        {isLogin && qrLoginEnabled ? (
           <Tabs value={loginMethod} onValueChange={setLoginMethod} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="password">密码登录</TabsTrigger>
