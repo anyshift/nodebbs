@@ -798,6 +798,14 @@ export const emailConfigApi = {
   },
 };
 
+// ============= 管理后台 API =============
+export const dashboardApi = {
+  // 获取统计数据（仅管理员）
+  async getStats() {
+    return apiClient.get('/dashboard/stats');
+  },
+};
+
 // ============= 邀请码 API =============
 export const invitationsApi = {
   // 生成邀请码

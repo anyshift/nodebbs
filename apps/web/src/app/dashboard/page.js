@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, FolderTree, FileText, MessageSquare } from 'lucide-react';
-import { categoryApi, userApi, topicApi } from '@/lib/api';
+import { dashboardApi } from '@/lib/api';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -20,17 +20,12 @@ export default function AdminDashboard() {
 
   const fetchStats = async () => {
     try {
-      // 这里可以创建专门的统计 API，暂时用现有 API 获取
-      const [categories, topics] = await Promise.all([
-        categoryApi.getAll(),
-        topicApi.getList({ limit: 1 }),
-      ]);
-
+      const data = await dashboardApi.getStats();
       setStats({
-        totalUsers: 0, // 需要添加用户统计 API
-        totalCategories: categories.length || 0,
-        totalTopics: topics.total || 0,
-        totalPosts: 0, // 需要添加帖子统计 API
+        totalUsers: data.totalUsers || 0,
+        totalCategories: data.totalCategories || 0,
+        totalTopics: data.totalTopics || 0,
+        totalPosts: data.totalPosts || 0,
       });
     } catch (err) {
       console.error('获取统计数据失败:', err);
