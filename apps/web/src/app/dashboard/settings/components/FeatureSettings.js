@@ -381,6 +381,121 @@ export function FeatureSettings({ settings, handleStringChange, handleBooleanCha
           </div>
         </div>
       )}
+
+      {/* 垃圾注册拦截分隔符 */}
+      {settings.spam_protection_enabled && (
+        <>
+          <div className='pt-4 pb-2'>
+            <h3 className='text-lg font-semibold'>垃圾注册拦截</h3>
+            <p className='text-sm text-muted-foreground'>
+              使用 StopForumSpam API 检测和拦截垃圾注册
+            </p>
+          </div>
+
+          {/* 垃圾注册拦截总开关 */}
+          <div className='border border-border rounded-lg bg-card'>
+            <div className='px-4 py-4'>
+              <div className='flex items-center justify-between'>
+                <div className='space-y-1'>
+                  <Label htmlFor='spam_protection_enabled' className='text-sm font-semibold'>
+                    启用垃圾注册拦截
+                  </Label>
+                  <p className='text-sm text-muted-foreground'>
+                    {settings.spam_protection_enabled.description}
+                  </p>
+                </div>
+                <Switch
+                  id='spam_protection_enabled'
+                  checked={settings.spam_protection_enabled.value}
+                  onCheckedChange={(checked) =>
+                    handleBooleanChange('spam_protection_enabled', checked)
+                  }
+                  disabled={saving}
+                />
+              </div>
+
+              {/* 拦截类型配置（仅在启用时显示） */}
+              {settings.spam_protection_enabled.value && (
+                <div className='mt-4 pt-4 border-t border-border space-y-3'>
+                  <p className='text-sm font-medium text-foreground'>检查类型（多选）</p>
+
+                  {/* 检查 IP */}
+                  {settings.spam_protection_check_ip && (
+                    <div className='flex items-center justify-between'>
+                      <div className='space-y-0.5'>
+                        <Label htmlFor='spam_protection_check_ip' className='text-sm font-medium'>
+                          检查 IP 地址
+                        </Label>
+                        <p className='text-xs text-muted-foreground'>
+                          验证用户的 IP 地址是否在垃圾注册数据库中
+                        </p>
+                      </div>
+                      <Switch
+                        id='spam_protection_check_ip'
+                        checked={settings.spam_protection_check_ip.value}
+                        onCheckedChange={(checked) =>
+                          handleBooleanChange('spam_protection_check_ip', checked)
+                        }
+                        disabled={saving}
+                      />
+                    </div>
+                  )}
+
+                  {/* 检查邮箱 */}
+                  {settings.spam_protection_check_email && (
+                    <div className='flex items-center justify-between'>
+                      <div className='space-y-0.5'>
+                        <Label htmlFor='spam_protection_check_email' className='text-sm font-medium'>
+                          检查邮箱地址
+                        </Label>
+                        <p className='text-xs text-muted-foreground'>
+                          验证用户的邮箱地址是否在垃圾注册数据库中
+                        </p>
+                      </div>
+                      <Switch
+                        id='spam_protection_check_email'
+                        checked={settings.spam_protection_check_email.value}
+                        onCheckedChange={(checked) =>
+                          handleBooleanChange('spam_protection_check_email', checked)
+                        }
+                        disabled={saving}
+                      />
+                    </div>
+                  )}
+
+                  {/* 检查用户名 */}
+                  {settings.spam_protection_check_username && (
+                    <div className='flex items-center justify-between'>
+                      <div className='space-y-0.5'>
+                        <Label htmlFor='spam_protection_check_username' className='text-sm font-medium'>
+                          检查用户名
+                        </Label>
+                        <p className='text-xs text-muted-foreground'>
+                          验证用户的用户名是否在垃圾注册数据库中
+                        </p>
+                      </div>
+                      <Switch
+                        id='spam_protection_check_username'
+                        checked={settings.spam_protection_check_username.value}
+                        onCheckedChange={(checked) =>
+                          handleBooleanChange('spam_protection_check_username', checked)
+                        }
+                        disabled={saving}
+                      />
+                    </div>
+                  )}
+
+                  <div className='mt-3 pt-3 border-t border-border'>
+                    <p className='text-xs text-muted-foreground'>
+                      💡 提示：如果 StopForumSpam API 调用失败，系统会跳过检查，不会阻止正常注册。
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

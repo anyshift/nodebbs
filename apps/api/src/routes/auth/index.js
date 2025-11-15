@@ -13,6 +13,7 @@ import {
   validateUsername,
   normalizeUsername,
 } from '../../utils/validateUsername.js';
+import { checkSpammer, formatSpamCheckMessage } from '../../utils/stopforumspam.js';
 import qrLoginRoutes from './qr-login.js';
 
 export default async function authRoutes(fastify, options) {
@@ -97,6 +98,67 @@ export default async function authRoutes(fastify, options) {
           return reply.code(400).send({ error: validation.message });
         }
       }
+
+      // ============ StopForumSpam 垃圾注册检查 ============
+      const spamProtectionEnabled = await getSetting('spam_protection_enabled', false);
+
+      if (spamProtectionEnabled) {
+        // 获取检查配置
+        const checkIP = await getSetting('spam_protection_check_ip', true);
+        const checkEmail = await getSetting('spam_protection_check_email', true);
+        const checkUsername = await getSetting('spam_protection_check_username', true);
+
+        // 构建检查类型数组
+        const checkTypes = [];
+        if (checkIP) checkTypes.push('ip');
+        if (checkEmail) checkTypes.push('email');
+        if (checkUsername) checkTypes.push('username');
+
+        // 如果至少有一种检查类型
+        if (checkTypes.length > 0) {
+          // 获取用户 IP（从请求头或 socket 地址获取）
+          const userIP =
+            request.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+            request.headers['x-real-ip'] ||
+            request.ip ||
+            request.socket.remoteAddress;
+
+          // 调用 StopForumSpam API 检查
+          const spamCheckResult = await checkSpammer(
+            {
+              ip: userIP,
+              email: email,
+              username: normalizedUsername,
+            },
+            checkTypes
+          );
+
+          // 记录检查结果
+          fastify.log.info(
+            `[StopForumSpam] 注册检查: ${email} | IP: ${userIP} | 用户名: ${normalizedUsername} | 结果: ${spamCheckResult.isSpammer ? '拦截' : '通过'}`
+          );
+
+          // 如果检测到垃圾注册
+          if (spamCheckResult.isSpammer) {
+            const errorMessage = formatSpamCheckMessage(spamCheckResult);
+            fastify.log.warn(
+              `[StopForumSpam] 拦截垃圾注册: ${email} | 置信度: ${spamCheckResult.confidence}% | 详情: ${JSON.stringify(spamCheckResult.details)}`
+            );
+            return reply.code(403).send({
+              error: errorMessage || '检测到垃圾注册行为，注册已被拦截',
+              details: spamCheckResult.details,
+            });
+          }
+
+          // 如果 API 调用失败但有错误信息，记录日志但允许继续注册
+          if (spamCheckResult.error) {
+            fastify.log.warn(
+              `[StopForumSpam] API 调用失败，跳过检查: ${spamCheckResult.error}`
+            );
+          }
+        }
+      }
+      // ============ StopForumSpam 检查结束 ============
 
       // Check if user exists
       const existingUser = await db

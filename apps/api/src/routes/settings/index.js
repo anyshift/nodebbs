@@ -101,6 +101,28 @@ const SETTING_KEYS = {
     category: 'user_settings',
   },
 
+  // 垃圾注册拦截（仅管理员可见和修改）
+  SPAM_PROTECTION_ENABLED: {
+    key: 'spam_protection_enabled',
+    accessLevel: ACCESS_LEVEL.ADMIN,
+    category: 'spam_protection',
+  },
+  SPAM_PROTECTION_CHECK_IP: {
+    key: 'spam_protection_check_ip',
+    accessLevel: ACCESS_LEVEL.ADMIN,
+    category: 'spam_protection',
+  },
+  SPAM_PROTECTION_CHECK_EMAIL: {
+    key: 'spam_protection_check_email',
+    accessLevel: ACCESS_LEVEL.ADMIN,
+    category: 'spam_protection',
+  },
+  SPAM_PROTECTION_CHECK_USERNAME: {
+    key: 'spam_protection_check_username',
+    accessLevel: ACCESS_LEVEL.ADMIN,
+    category: 'spam_protection',
+  },
+
   // 访问限速（仅管理员可见）
   RATE_LIMIT_ENABLED: {
     key: 'rate_limit_enabled',

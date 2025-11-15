@@ -111,6 +111,36 @@ export const SETTING_KEYS = {
     category: 'user_settings',
   },
 
+  // StopForumSpam 垃圾注册拦截
+  SPAM_PROTECTION_ENABLED: {
+    key: 'spam_protection_enabled',
+    value: 'false',
+    valueType: 'boolean',
+    description: '是否启用垃圾注册拦截（使用 StopForumSpam API）',
+    category: 'spam_protection',
+  },
+  SPAM_PROTECTION_CHECK_IP: {
+    key: 'spam_protection_check_ip',
+    value: 'true',
+    valueType: 'boolean',
+    description: '是否检查 IP 地址',
+    category: 'spam_protection',
+  },
+  SPAM_PROTECTION_CHECK_EMAIL: {
+    key: 'spam_protection_check_email',
+    value: 'true',
+    valueType: 'boolean',
+    description: '是否检查邮箱地址',
+    category: 'spam_protection',
+  },
+  SPAM_PROTECTION_CHECK_USERNAME: {
+    key: 'spam_protection_check_username',
+    value: 'true',
+    valueType: 'boolean',
+    description: '是否检查用户名',
+    category: 'spam_protection',
+  },
+
   // 访问限速
   RATE_LIMIT_ENABLED: {
     key: 'rate_limit_enabled',
@@ -156,6 +186,7 @@ export const CATEGORY_NAMES = {
   general: '通用设置',
   features: '功能开关',
   user_settings: '用户设置',
+  spam_protection: '垃圾注册拦截',
   rate_limit: '访问限速',
   other: '其他设置',
 };
