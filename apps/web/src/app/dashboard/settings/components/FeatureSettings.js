@@ -1,8 +1,19 @@
 'use client';
 
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Input } from '@/components/ui/input';
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
+import { RegistrationSettings } from './RegistrationSettings';
+import { SecuritySettings } from './SecuritySettings';
+import { AuthenticationSettings } from './AuthenticationSettings';
+import { UserManagementSettings } from './UserManagementSettings';
+import { SpamProtectionSettings } from './SpamProtectionSettings';
+import {
+  KeyRound,
+  Shield,
+  Scan,
+  Users,
+  ShieldAlert
+} from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -11,491 +22,178 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+const navigationItems = [
+  {
+    id: 'registration',
+    label: '注册设置',
+    icon: KeyRound,
+    description: '控制用户如何注册账号',
+  },
+  {
+    id: 'security',
+    label: '安全设置',
+    icon: Shield,
+    description: '邮箱验证和内容审核',
+  },
+  {
+    id: 'authentication',
+    label: '认证方式',
+    icon: Scan,
+    description: '扫码登录等认证功能',
+  },
+  {
+    id: 'user-management',
+    label: '用户管理',
+    icon: Users,
+    description: '用户信息修改权限',
+  },
+  {
+    id: 'spam-protection',
+    label: '垃圾拦截',
+    icon: ShieldAlert,
+    description: '防止垃圾注册',
+  },
+];
+
 export function FeatureSettings({ settings, handleStringChange, handleBooleanChange, handleNumberChange, saving }) {
+  const [activeTab, setActiveTab] = useState('registration');
+
+  const activeItem = navigationItems.find(item => item.id === activeTab);
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'registration':
+        return (
+          <RegistrationSettings
+            settings={settings}
+            handleStringChange={handleStringChange}
+            saving={saving}
+          />
+        );
+      case 'security':
+        return (
+          <SecuritySettings
+            settings={settings}
+            handleBooleanChange={handleBooleanChange}
+            saving={saving}
+          />
+        );
+      case 'authentication':
+        return (
+          <AuthenticationSettings
+            settings={settings}
+            handleBooleanChange={handleBooleanChange}
+            handleNumberChange={handleNumberChange}
+            saving={saving}
+          />
+        );
+      case 'user-management':
+        return (
+          <UserManagementSettings
+            settings={settings}
+            handleBooleanChange={handleBooleanChange}
+            handleNumberChange={handleNumberChange}
+            saving={saving}
+          />
+        );
+      case 'spam-protection':
+        return (
+          <SpamProtectionSettings
+            settings={settings}
+            handleBooleanChange={handleBooleanChange}
+            saving={saving}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className='space-y-4'>
-      {/* 注册模式 */}
-      {settings.registration_mode && (
-        <div className='border border-border rounded-lg bg-card'>
-          <div className='p-4 flex items-center justify-between'>
-            <div className='space-y-1'>
-              <Label htmlFor='registration_mode' className='text-sm font-semibold'>
-                注册模式
-              </Label>
-              <p className='text-sm text-muted-foreground'>
-                {settings.registration_mode.description}
-              </p>
-            </div>
-            <Select
-              value={settings.registration_mode.value}
-              onValueChange={(value) => handleStringChange('registration_mode', value)}
-              disabled={saving}
-            >
-              <SelectTrigger className='max-w-xs'>
-                <SelectValue>
-                  {settings.registration_mode.value === 'open' && '开放注册'}
-                  {settings.registration_mode.value === 'invitation' && '邀请注册'}
-                  {settings.registration_mode.value === 'closed' && '关闭注册'}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='open'>
-                  <div className='flex items-center gap-2'>
-                    <span>🌐</span>
-                    <div>
-                      <div className='font-medium'>开放注册</div>
-                      <div className='text-xs text-muted-foreground'>
-                        任何人都可以注册
-                      </div>
-                    </div>
-                  </div>
-                </SelectItem>
-                <SelectItem value='invitation'>
-                  <div className='flex items-center gap-2'>
-                    <span>🎫</span>
-                    <div>
-                      <div className='font-medium'>邀请码注册</div>
-                      <div className='text-xs text-muted-foreground'>
-                        需要邀请码才能注册
-                      </div>
-                    </div>
-                  </div>
-                </SelectItem>
-                <SelectItem value='closed'>
-                  <div className='flex items-center gap-2'>
-                    <span>🔒</span>
-                    <div>
-                      <div className='font-medium'>关闭注册</div>
-                      <div className='text-xs text-muted-foreground'>
-                        暂停所有新用户注册
-                      </div>
-                    </div>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      )}
-
-      {/* 邮箱验证开关 */}
-      {settings.email_verification_required && (
-        <div className='border border-border rounded-lg bg-card'>
-          <div className='px-4 py-4'>
-            <div className='flex items-center justify-between'>
-              <div className='space-y-1'>
-                <Label htmlFor='email_verification_required' className='text-sm font-semibold'>
-                  邮箱验证要求
-                </Label>
-                <p className='text-sm text-muted-foreground'>
-                  {settings.email_verification_required.description}
-                </p>
-              </div>
-              <Switch
-                id='email_verification_required'
-                checked={settings.email_verification_required.value}
-                onCheckedChange={(checked) =>
-                  handleBooleanChange('email_verification_required', checked)
-                }
-                disabled={saving}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 内容审核开关 */}
-      {settings.content_moderation_enabled && (
-        <div className='border border-border rounded-lg bg-card'>
-          <div className='px-4 py-4'>
-            <div className='flex items-center justify-between'>
-              <div className='space-y-1'>
-                <Label htmlFor='content_moderation_enabled' className='text-sm font-semibold'>
-                  内容审核
-                </Label>
-                <p className='text-sm text-muted-foreground'>
-                  {settings.content_moderation_enabled.description}
-                </p>
-              </div>
-              <Switch
-                id='content_moderation_enabled'
-                checked={settings.content_moderation_enabled.value}
-                onCheckedChange={(checked) =>
-                  handleBooleanChange('content_moderation_enabled', checked)
-                }
-                disabled={saving}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 扫码登录功能 */}
-      {settings.qr_login_enabled && (
-        <div className='border border-border rounded-lg bg-card'>
-          <div className='px-4 py-4'>
-            <div className='flex items-center justify-between'>
-              <div className='space-y-1'>
-                <Label htmlFor='qr_login_enabled' className='text-sm font-semibold'>
-                  扫码登录功能
-                </Label>
-                <p className='text-sm text-muted-foreground'>
-                  允许用户使用手机App扫描二维码登录
-                </p>
-              </div>
-              <Switch
-                id='qr_login_enabled'
-                checked={settings.qr_login_enabled.value}
-                onCheckedChange={(checked) =>
-                  handleBooleanChange('qr_login_enabled', checked)
-                }
-                disabled={saving}
-              />
-            </div>
-
-            {/* 二维码有效期设置 */}
-            {settings.qr_login_enabled.value && settings.qr_login_timeout && (
-              <div className='mt-4 pt-4 border-t border-border'>
-                <div className='flex items-center justify-between gap-4'>
-                  <div className='space-y-1 flex-1'>
-                    <Label htmlFor='qr_login_timeout' className='text-sm font-medium'>
-                      二维码有效期（秒）
-                    </Label>
-                    <p className='text-sm text-muted-foreground'>
-                      二维码登录请求的有效期，建议设置为 60-600 秒
-                    </p>
-                  </div>
-                  <Input
-                    id='qr_login_timeout'
-                    type='number'
-                    min='60'
-                    max='600'
-                    className='w-24'
-                    value={settings.qr_login_timeout.value}
-                    onChange={(e) =>
-                      handleNumberChange('qr_login_timeout', e.target.value)
-                    }
-                    disabled={saving}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 用户设置分隔符 */}
-      <div className='pt-4 pb-2'>
-        <h3 className='text-lg font-semibold'>用户设置</h3>
-        <p className='text-sm text-muted-foreground'>管理用户修改个人信息的权限和限制</p>
-      </div>
-
-      {/* 用户名修改开关 */}
-      {settings.allow_username_change && (
-        <div className='border border-border rounded-lg bg-card'>
-          <div className='px-4 py-4'>
-            <div className='flex items-center justify-between'>
-              <div className='space-y-1'>
-                <Label htmlFor='allow_username_change' className='text-sm font-semibold'>
-                  允许修改用户名
-                </Label>
-                <p className='text-sm text-muted-foreground'>
-                  {settings.allow_username_change.description}
-                </p>
-              </div>
-              <Switch
-                id='allow_username_change'
-                checked={settings.allow_username_change.value}
-                onCheckedChange={(checked) =>
-                  handleBooleanChange('allow_username_change', checked)
-                }
-                disabled={saving}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 用户名修改冷却期 */}
-      {settings.username_change_cooldown_days && (
-        <div className='border border-border rounded-lg bg-card'>
-          <div className='px-4 py-4'>
-            <div className='flex items-center justify-between gap-4'>
-              <div className='space-y-1 flex-1'>
-                <Label htmlFor='username_change_cooldown_days' className='text-sm font-semibold'>
-                  用户名修改冷却期（天）
-                </Label>
-                <p className='text-sm text-muted-foreground'>
-                  {settings.username_change_cooldown_days.description}
-                </p>
-              </div>
-              <Input
-                id='username_change_cooldown_days'
-                type='number'
-                min='0'
-                className='w-24'
-                value={settings.username_change_cooldown_days.value}
-                onChange={(e) =>
-                  handleNumberChange('username_change_cooldown_days', e.target.value)
-                }
-                disabled={saving}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 用户名修改次数限制 */}
-      {settings.username_change_limit && (
-        <div className='border border-border rounded-lg bg-card'>
-          <div className='px-4 py-4'>
-            <div className='flex items-center justify-between gap-4'>
-              <div className='space-y-1 flex-1'>
-                <Label htmlFor='username_change_limit' className='text-sm font-semibold'>
-                  用户名修改次数限制
-                </Label>
-                <p className='text-sm text-muted-foreground'>
-                  {settings.username_change_limit.description}（0表示无限制）
-                </p>
-              </div>
-              <Input
-                id='username_change_limit'
-                type='number'
-                min='0'
-                className='w-24'
-                value={settings.username_change_limit.value}
-                onChange={(e) =>
-                  handleNumberChange('username_change_limit', e.target.value)
-                }
-                disabled={saving}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 用户名修改需要密码 */}
-      {settings.username_change_requires_password && (
-        <div className='border border-border rounded-lg bg-card'>
-          <div className='px-4 py-4'>
-            <div className='flex items-center justify-between'>
-              <div className='space-y-1'>
-                <Label htmlFor='username_change_requires_password' className='text-sm font-semibold'>
-                  修改用户名需要密码验证
-                </Label>
-                <p className='text-sm text-muted-foreground'>
-                  {settings.username_change_requires_password.description}
-                </p>
-              </div>
-              <Switch
-                id='username_change_requires_password'
-                checked={settings.username_change_requires_password.value}
-                onCheckedChange={(checked) =>
-                  handleBooleanChange('username_change_requires_password', checked)
-                }
-                disabled={saving}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 邮箱修改开关 */}
-      {settings.allow_email_change && (
-        <div className='border border-border rounded-lg bg-card'>
-          <div className='px-4 py-4'>
-            <div className='flex items-center justify-between'>
-              <div className='space-y-1'>
-                <Label htmlFor='allow_email_change' className='text-sm font-semibold'>
-                  允许修改邮箱
-                </Label>
-                <p className='text-sm text-muted-foreground'>
-                  {settings.allow_email_change.description}
-                </p>
-              </div>
-              <Switch
-                id='allow_email_change'
-                checked={settings.allow_email_change.value}
-                onCheckedChange={(checked) =>
-                  handleBooleanChange('allow_email_change', checked)
-                }
-                disabled={saving}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 邮箱修改需要密码 */}
-      {settings.email_change_requires_password && (
-        <div className='border border-border rounded-lg bg-card'>
-          <div className='px-4 py-4'>
-            <div className='flex items-center justify-between'>
-              <div className='space-y-1'>
-                <Label htmlFor='email_change_requires_password' className='text-sm font-semibold'>
-                  修改邮箱需要密码验证
-                </Label>
-                <p className='text-sm text-muted-foreground'>
-                  {settings.email_change_requires_password.description}
-                </p>
-              </div>
-              <Switch
-                id='email_change_requires_password'
-                checked={settings.email_change_requires_password.value}
-                onCheckedChange={(checked) =>
-                  handleBooleanChange('email_change_requires_password', checked)
-                }
-                disabled={saving}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 邮箱修改验证码有效期 */}
-      {settings.email_change_verification_expires_minutes && (
-        <div className='border border-border rounded-lg bg-card'>
-          <div className='px-4 py-4'>
-            <div className='flex items-center justify-between gap-4'>
-              <div className='space-y-1 flex-1'>
-                <Label htmlFor='email_change_verification_expires_minutes' className='text-sm font-semibold'>
-                  邮箱修改验证码有效期（分钟）
-                </Label>
-                <p className='text-sm text-muted-foreground'>
-                  {settings.email_change_verification_expires_minutes.description}
-                </p>
-              </div>
-              <Input
-                id='email_change_verification_expires_minutes'
-                type='number'
-                min='5'
-                max='60'
-                className='w-24'
-                value={settings.email_change_verification_expires_minutes.value}
-                onChange={(e) =>
-                  handleNumberChange('email_change_verification_expires_minutes', e.target.value)
-                }
-                disabled={saving}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 垃圾注册拦截分隔符 */}
-      {settings.spam_protection_enabled && (
-        <>
-          <div className='pt-4 pb-2'>
-            <h3 className='text-lg font-semibold'>垃圾注册拦截</h3>
-            <p className='text-sm text-muted-foreground'>
-              使用 StopForumSpam API 检测和拦截垃圾注册
-            </p>
-          </div>
-
-          {/* 垃圾注册拦截总开关 */}
-          <div className='border border-border rounded-lg bg-card'>
-            <div className='px-4 py-4'>
-              <div className='flex items-center justify-between'>
-                <div className='space-y-1'>
-                  <Label htmlFor='spam_protection_enabled' className='text-sm font-semibold'>
-                    启用垃圾注册拦截
-                  </Label>
-                  <p className='text-sm text-muted-foreground'>
-                    {settings.spam_protection_enabled.description}
-                  </p>
-                </div>
-                <Switch
-                  id='spam_protection_enabled'
-                  checked={settings.spam_protection_enabled.value}
-                  onCheckedChange={(checked) =>
-                    handleBooleanChange('spam_protection_enabled', checked)
-                  }
-                  disabled={saving}
-                />
-              </div>
-
-              {/* 拦截类型配置（仅在启用时显示） */}
-              {settings.spam_protection_enabled.value && (
-                <div className='mt-4 pt-4 border-t border-border space-y-3'>
-                  <p className='text-sm font-medium text-foreground'>检查类型（多选）</p>
-
-                  {/* 检查 IP */}
-                  {settings.spam_protection_check_ip && (
-                    <div className='flex items-center justify-between'>
-                      <div className='space-y-0.5'>
-                        <Label htmlFor='spam_protection_check_ip' className='text-sm font-medium'>
-                          检查 IP 地址
-                        </Label>
-                        <p className='text-xs text-muted-foreground'>
-                          验证用户的 IP 地址是否在垃圾注册数据库中
-                        </p>
-                      </div>
-                      <Switch
-                        id='spam_protection_check_ip'
-                        checked={settings.spam_protection_check_ip.value}
-                        onCheckedChange={(checked) =>
-                          handleBooleanChange('spam_protection_check_ip', checked)
-                        }
-                        disabled={saving}
-                      />
-                    </div>
-                  )}
-
-                  {/* 检查邮箱 */}
-                  {settings.spam_protection_check_email && (
-                    <div className='flex items-center justify-between'>
-                      <div className='space-y-0.5'>
-                        <Label htmlFor='spam_protection_check_email' className='text-sm font-medium'>
-                          检查邮箱地址
-                        </Label>
-                        <p className='text-xs text-muted-foreground'>
-                          验证用户的邮箱地址是否在垃圾注册数据库中
-                        </p>
-                      </div>
-                      <Switch
-                        id='spam_protection_check_email'
-                        checked={settings.spam_protection_check_email.value}
-                        onCheckedChange={(checked) =>
-                          handleBooleanChange('spam_protection_check_email', checked)
-                        }
-                        disabled={saving}
-                      />
-                    </div>
-                  )}
-
-                  {/* 检查用户名 */}
-                  {settings.spam_protection_check_username && (
-                    <div className='flex items-center justify-between'>
-                      <div className='space-y-0.5'>
-                        <Label htmlFor='spam_protection_check_username' className='text-sm font-medium'>
-                          检查用户名
-                        </Label>
-                        <p className='text-xs text-muted-foreground'>
-                          验证用户的用户名是否在垃圾注册数据库中
-                        </p>
-                      </div>
-                      <Switch
-                        id='spam_protection_check_username'
-                        checked={settings.spam_protection_check_username.value}
-                        onCheckedChange={(checked) =>
-                          handleBooleanChange('spam_protection_check_username', checked)
-                        }
-                        disabled={saving}
-                      />
-                    </div>
-                  )}
-
-                  <div className='mt-3 pt-3 border-t border-border'>
-                    <p className='text-xs text-muted-foreground'>
-                      💡 提示：如果 StopForumSpam API 调用失败，系统会跳过检查，不会阻止正常注册。
-                    </p>
-                  </div>
+    <div className='space-y-6'>
+      {/* 移动端选择器 */}
+      <div className='lg:hidden'>
+        <Select value={activeTab} onValueChange={setActiveTab}>
+          <SelectTrigger className='w-full'>
+            <SelectValue>
+              {activeItem && (
+                <div className='flex items-center gap-2'>
+                  <activeItem.icon className='h-4 w-4' />
+                  <span>{activeItem.label}</span>
                 </div>
               )}
-            </div>
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {navigationItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <SelectItem key={item.id} value={item.id}>
+                  <div className='flex items-center gap-2'>
+                    <Icon className='h-4 w-4' />
+                    <div>
+                      <div className='font-medium'>{item.label}</div>
+                      <div className='text-xs text-muted-foreground'>{item.description}</div>
+                    </div>
+                  </div>
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* 桌面端：左右布局 */}
+      <div className='flex flex-col lg:flex-row gap-6'>
+        {/* 左侧导航 */}
+        <aside className='hidden lg:block lg:w-64 flex-shrink-0'>
+          <nav className='space-y-1'>
+            {navigationItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={cn(
+                    'w-full flex items-start gap-3 px-4 py-3 rounded-lg text-left transition-colors',
+                    isActive
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'bg-card hover:bg-muted/50 text-foreground border border-border'
+                  )}
+                >
+                  <Icon className={cn(
+                    'h-5 w-5 flex-shrink-0 mt-0.5',
+                    isActive ? 'text-primary-foreground' : 'text-muted-foreground'
+                  )} />
+                  <div className='flex-1 min-w-0'>
+                    <div className={cn(
+                      'font-medium text-sm',
+                      isActive ? 'text-primary-foreground' : 'text-foreground'
+                    )}>
+                      {item.label}
+                    </div>
+                    <div className={cn(
+                      'text-xs mt-0.5 line-clamp-2',
+                      isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'
+                    )}>
+                      {item.description}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+
+        {/* 右侧内容区域 */}
+        <main className='flex-1 min-w-0'>
+          <div className='bg-card rounded-lg border border-border p-4 sm:p-6'>
+            {renderContent()}
           </div>
-        </>
-      )}
+        </main>
+      </div>
     </div>
   );
 }

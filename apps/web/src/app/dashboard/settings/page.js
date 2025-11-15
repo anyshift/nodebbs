@@ -2,9 +2,16 @@
 
 import { useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useSettings } from '@/contexts/SettingsContext';
 import { toast } from 'sonner';
-import { Settings, ToggleLeft, Gauge } from 'lucide-react';
+import { Settings, ToggleLeft, Gauge, Layers, Mail } from 'lucide-react';
 import { Loading } from '@/components/common/Loading';
 
 // 导入组件
@@ -14,9 +21,44 @@ import { OAuthSettings } from './components/OAuthProviderCard';
 import { EmailSettings } from './components/EmailProviderCard';
 import { RateLimitSettings } from './components/RateLimitSettings';
 
+// Tab 配置
+const tabItems = [
+  {
+    value: 'general',
+    label: '通用设置',
+    shortLabel: '通用',
+    icon: Settings,
+  },
+  {
+    value: 'features',
+    label: '功能开关',
+    shortLabel: '功能',
+    icon: ToggleLeft,
+  },
+  {
+    value: 'oauth',
+    label: 'OAuth 登录',
+    shortLabel: 'OAuth',
+    icon: Layers,
+  },
+  {
+    value: 'email',
+    label: '邮件服务',
+    shortLabel: '邮件',
+    icon: Mail,
+  },
+  {
+    value: 'rate-limit',
+    label: '访问限速',
+    shortLabel: '限速',
+    icon: Gauge,
+  },
+];
+
 export default function SystemSettingsPage() {
   const { settings, loading, updateSetting } = useSettings();
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState('general');
 
   const handleSave = async (key, value) => {
     setSaving(true);
@@ -59,6 +101,8 @@ export default function SystemSettingsPage() {
     return <Loading text='加载中...' className='min-h-[400px]' />;
   }
 
+  const activeItem = tabItems.find(item => item.value === activeTab);
+
   return (
     <div className='space-y-6'>
       {/* Page header */}
@@ -69,35 +113,48 @@ export default function SystemSettingsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue='general' className='space-y-6'>
-        <TabsList>
-          <TabsTrigger value='general'>
-            <Settings className='h-4 w-4' />
-            通用设置
-          </TabsTrigger>
-          <TabsTrigger value='features'>
-            <ToggleLeft className='h-4 w-4' />
-            功能开关
-          </TabsTrigger>
-          <TabsTrigger value='oauth'>
-            <svg className='h-4 w-4' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
-              <path d='M12 2L2 7l10 5 10-5-10-5z'/>
-              <path d='M2 17l10 5 10-5'/>
-              <path d='M2 12l10 5 10-5'/>
-            </svg>
-            OAuth 登录
-          </TabsTrigger>
-          <TabsTrigger value='email'>
-            <svg className='h-4 w-4' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
-              <rect x='2' y='4' width='20' height='16' rx='2'/>
-              <path d='m2 7 10 7 10-7'/>
-            </svg>
-            邮件服务
-          </TabsTrigger>
-          <TabsTrigger value='rate-limit'>
-            <Gauge className='h-4 w-4' />
-            访问限速
-          </TabsTrigger>
+      {/* 移动端选择器 */}
+      <div className='md:hidden'>
+        <Select value={activeTab} onValueChange={setActiveTab}>
+          <SelectTrigger className='w-full'>
+            <SelectValue>
+              {activeItem && (
+                <div className='flex items-center gap-2'>
+                  <activeItem.icon className='h-4 w-4' />
+                  <span>{activeItem.label}</span>
+                </div>
+              )}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {tabItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <SelectItem key={item.value} value={item.value}>
+                  <div className='flex items-center gap-2'>
+                    <Icon className='h-4 w-4' />
+                    <span>{item.label}</span>
+                  </div>
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* 桌面端 Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className='space-y-6'>
+        <TabsList className='hidden md:inline-flex'>
+          {tabItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <TabsTrigger key={item.value} value={item.value} className='gap-2'>
+                <Icon className='h-4 w-4' />
+                <span className='hidden lg:inline'>{item.label}</span>
+                <span className='md:inline lg:hidden'>{item.shortLabel}</span>
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
 
         {/* 通用设置 Tab */}
