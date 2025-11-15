@@ -107,6 +107,7 @@ export default async function authRoutes(fastify, options) {
         const checkIP = await getSetting('spam_protection_check_ip', true);
         const checkEmail = await getSetting('spam_protection_check_email', true);
         const checkUsername = await getSetting('spam_protection_check_username', true);
+        const apiKey = await getSetting('spam_protection_api_key', '');
 
         // 构建检查类型数组
         const checkTypes = [];
@@ -130,7 +131,8 @@ export default async function authRoutes(fastify, options) {
               email: email,
               username: normalizedUsername,
             },
-            checkTypes
+            checkTypes,
+            apiKey
           );
 
           // 记录检查结果

@@ -2,10 +2,11 @@
 
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InfoIcon } from 'lucide-react';
 
-export function SpamProtectionSettings({ settings, handleBooleanChange, saving }) {
+export function SpamProtectionSettings({ settings, handleBooleanChange, handleStringChange, saving }) {
   if (!settings.spam_protection_enabled) return null;
 
   return (
@@ -43,7 +44,36 @@ export function SpamProtectionSettings({ settings, handleBooleanChange, saving }
 
       {/* 检查类型配置 */}
       {settings.spam_protection_enabled.value && (
-        <div className='border border-border rounded-lg bg-card'>
+        <>
+          {/* API Key 配置 */}
+          {settings.spam_protection_api_key && (
+            <div className='border border-border rounded-lg bg-card'>
+              <div className='px-4 py-4 space-y-3'>
+                <div className='space-y-1'>
+                  <Label htmlFor='spam_protection_api_key' className='text-sm font-semibold'>
+                    StopForumSpam API Key
+                  </Label>
+                  <p className='text-sm text-muted-foreground'>
+                    {settings.spam_protection_api_key.description}
+                  </p>
+                </div>
+                <Input
+                  id='spam_protection_api_key'
+                  type='text'
+                  placeholder='可选，留空则使用默认限制'
+                  defaultValue={settings.spam_protection_api_key.value}
+                  onBlur={(e) => handleStringChange('spam_protection_api_key', e.target.value)}
+                  disabled={saving}
+                  className='max-w-md font-mono text-sm'
+                />
+                <p className='text-xs text-muted-foreground'>
+                  提供 API Key 可以提高请求限制。访问 <a href='https://www.stopforumspam.com/keys' target='_blank' rel='noopener noreferrer' className='text-primary hover:underline'>StopForumSpam</a> 获取免费 API Key
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className='border border-border rounded-lg bg-card'>
           <div className='px-4 py-4 space-y-4'>
             <div>
               <h4 className='text-sm font-semibold mb-1'>检查类型</h4>
@@ -128,6 +158,7 @@ export function SpamProtectionSettings({ settings, handleBooleanChange, saving }
             </Alert>
           </div>
         </div>
+        </>
       )}
     </div>
   );

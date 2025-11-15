@@ -119,6 +119,13 @@ export const SETTING_KEYS = {
     description: '是否启用垃圾注册拦截（使用 StopForumSpam API）',
     category: 'spam_protection',
   },
+  SPAM_PROTECTION_API_KEY: {
+    key: 'spam_protection_api_key',
+    value: '',
+    valueType: 'string',
+    description: 'StopForumSpam API Key（可选，用于提高请求限制）',
+    category: 'spam_protection',
+  },
   SPAM_PROTECTION_CHECK_IP: {
     key: 'spam_protection_check_ip',
     value: 'true',

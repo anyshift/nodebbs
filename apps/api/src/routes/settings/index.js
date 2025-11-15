@@ -107,6 +107,11 @@ const SETTING_KEYS = {
     accessLevel: ACCESS_LEVEL.ADMIN,
     category: 'spam_protection',
   },
+  SPAM_PROTECTION_API_KEY: {
+    key: 'spam_protection_api_key',
+    accessLevel: ACCESS_LEVEL.ADMIN,
+    category: 'spam_protection',
+  },
   SPAM_PROTECTION_CHECK_IP: {
     key: 'spam_protection_check_ip',
     accessLevel: ACCESS_LEVEL.ADMIN,

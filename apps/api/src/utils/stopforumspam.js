@@ -13,12 +13,19 @@ const STOPFORUMSPAM_API = 'https://api.stopforumspam.org/api';
  * @param {string} params.email - 邮箱地址
  * @param {string} params.username - 用户名
  * @param {Array<string>} checkTypes - 要检查的类型数组 ['ip', 'email', 'username']
+ * @param {string} apiKey - StopForumSpam API Key（可选）
  * @returns {Promise<Object>} - 检查结果
  */
-export async function checkSpammer({ ip, email, username }, checkTypes = ['ip', 'email', 'username']) {
+export async function checkSpammer({ ip, email, username }, checkTypes = ['ip', 'email', 'username'], apiKey = '') {
   try {
     // 构建查询参数
     const queryParams = new URLSearchParams();
+
+    // 如果提供了 API Key，添加到请求参数中
+    if (apiKey && apiKey.trim()) {
+      queryParams.append('api_key', apiKey.trim());
+    }
+
     queryParams.append('json', '1'); // 返回 JSON 格式
 
     // 根据配置添加要检查的参数
@@ -60,6 +67,7 @@ export async function checkSpammer({ ip, email, username }, checkTypes = ['ip', 
     }
 
     const data = await response.json();
+    console.log(data, 'stop forum spam >>>>>>>>>');
 
     // 检查 API 是否成功
     if (!data.success) {

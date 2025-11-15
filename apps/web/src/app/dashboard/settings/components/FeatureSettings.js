@@ -101,6 +101,7 @@ export function FeatureSettings({ settings, handleStringChange, handleBooleanCha
           <SpamProtectionSettings
             settings={settings}
             handleBooleanChange={handleBooleanChange}
+            handleStringChange={handleStringChange}
             saving={saving}
           />
         );
@@ -146,7 +147,7 @@ export function FeatureSettings({ settings, handleStringChange, handleBooleanCha
       {/* 桌面端：左右布局 */}
       <div className='flex flex-col lg:flex-row gap-6'>
         {/* 左侧导航 */}
-        <aside className='hidden lg:block lg:w-64 flex-shrink-0'>
+        <aside className='hidden lg:block lg:w-64 shrink-0'>
           <nav className='space-y-1'>
             {navigationItems.map((item) => {
               const Icon = item.icon;
@@ -164,7 +165,7 @@ export function FeatureSettings({ settings, handleStringChange, handleBooleanCha
                   )}
                 >
                   <Icon className={cn(
-                    'h-5 w-5 flex-shrink-0 mt-0.5',
+                    'h-5 w-5 shrink-0 mt-0.5',
                     isActive ? 'text-primary-foreground' : 'text-muted-foreground'
                   )} />
                   <div className='flex-1 min-w-0'>

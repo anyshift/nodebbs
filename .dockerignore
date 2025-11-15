@@ -56,9 +56,8 @@
 **/.history
 
 # Docker 相关文件（避免递归复制）
-Dockerfile
-docker-compose*.yml
-.dockerignore
+/Dockerfile
+/docker-compose*.yml
 
 # CI/CD
 .github
