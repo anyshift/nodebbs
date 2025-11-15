@@ -64,7 +64,7 @@ export async function generateMetadata({ params }) {
 export default async function TopicDetailPage({ params, searchParams }) {
   const { id } = await params;
   const resolvedSearchParams = await searchParams;
-  const currentPage = parseInt(resolvedSearchParams.page) || 1;
+  const currentPage = parseInt(resolvedSearchParams.p) || 1;
   const LIMIT = 20;
 
   // 并行获取话题和回复数据

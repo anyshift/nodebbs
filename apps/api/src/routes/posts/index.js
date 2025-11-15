@@ -402,11 +402,11 @@ export default async function postRoutes(fastify, options) {
       .limit(1);
 
     if (!post || post.isDeleted) {
-      return reply.code(404).send({ error: '帖子不存在' });
+      return reply.code(404).send({ error: '回复不存在' });
     }
 
     if (post.topicId !== topicId) {
-      return reply.code(400).send({ error: '帖子不属于该话题' });
+      return reply.code(400).send({ error: '回复不属于该话题' });
     }
 
     // 2. 构建与列表查询相同的过滤条件

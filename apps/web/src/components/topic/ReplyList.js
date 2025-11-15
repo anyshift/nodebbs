@@ -39,7 +39,7 @@ const ReplyList = forwardRef(function ReplyList(
   const handlePageChange = (page) => {
     // 使用 URL 参数进行分页，触发服务端重新渲染
     // scroll: false 禁用 Next.js 默认滚动行为
-    router.push(`/topic/${topicId}?page=${page}`, { scroll: false });
+    router.push(`/topic/${topicId}?p=${page}`, { scroll: false });
 
     // 滚动到回复列表顶部
     setTimeout(() => {

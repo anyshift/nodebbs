@@ -210,7 +210,7 @@ export function ModerationLogs() {
                                     「{log.targetInfo.content}」
                                   </span>
                                   <Link
-                                    href={`/topic/${log.targetInfo.topicId}#${log.targetId}`}
+                                    href={`/topic/${log.targetInfo.topicId}#post-${log.targetId}`}
                                     className='text-primary hover:underline truncate'
                                   >
                                     ({log.targetInfo.topicTitle})

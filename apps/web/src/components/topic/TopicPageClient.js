@@ -7,6 +7,7 @@ import TopicContent from '@/components/topic/TopicContent';
 import ReplySection from '@/components/topic/ReplySection';
 import TopicSidebarWrapper from '@/components/topic/TopicSidebarWrapper';
 import { postApi } from '@/lib/api';
+import { toast } from 'sonner';
 
 export default function TopicPageClient({
   topic: initialTopic,
@@ -56,13 +57,14 @@ export default function TopicPageClient({
 
         // 如果不在当前页，跳转到目标页
         if (page !== currentPage) {
-          router.push(`/topic/${topic.id}?page=${page}#post-${postId}`, { scroll: false });
+          router.push(`/topic/${topic.id}?p=${page}#post-${postId}`, { scroll: false });
           return;
         }
 
         // 已在正确页面，滚动到目标元素
         scrollToPost(postId);
       } catch (error) {
+        toast.error(error.message || '出错了');
         console.error('Failed to navigate to post:', error);
       }
     };

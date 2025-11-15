@@ -170,7 +170,7 @@ export default function ReportsManagement() {
     if (report.reportType === 'topic') {
       return `/topic/${report.targetId}`;
     } else if (report.reportType === 'post' && report.targetInfo.topicId) {
-      return `/topic/${report.targetInfo.topicId}`;
+      return `/topic/${report.targetInfo.topicId}#post-${report.targetId}`;
     } else if (report.reportType === 'user') {
       return `/users/${report.targetInfo.username}`;
     }
@@ -211,9 +211,13 @@ export default function ReportsManagement() {
               </Link>
             )}
             {row.reportType === 'post' && (
-              <div className='text-sm text-muted-foreground line-clamp-2'>
+              <Link
+                href={getTargetLink(row)}
+                className='text-primary hover:underline line-clamp-2 text-sm'
+                target='_blank'
+              >
                 {row.targetInfo.content}
-              </div>
+              </Link>
             )}
             {row.reportType === 'user' && (
               <Link
