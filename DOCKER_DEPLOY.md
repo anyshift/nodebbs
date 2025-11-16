@@ -41,8 +41,9 @@ nodebbs/
 │       └── app/                 # Next.js App Router
 ├── scripts/
 │   └── init-db.sql              # 数据库初始化脚本
-├── docker-compose.yml           # Docker Compose 配置（开发/测试）
-├── docker-compose.prod.yml      # Docker Compose 配置（生产）
+├── docker-compose.yml           # Docker Compose 配置（基础环境）
+├── docker-compose.prod.yml      # Docker Compose 配置（标准生产环境）
+├── docker-compose.lowmem.yml    # Docker Compose 配置（低配环境）
 ├── .env.docker.example          # 环境变量示例
 ├── .env                         # 环境变量配置（需要创建）
 ├── Makefile                     # 简化命令工具
@@ -166,12 +167,29 @@ web (3100) → api (7100) → postgres (5432)
 ```
 
 **脚本新特性**：
-- 📋 **交互式环境选择**：支持开发环境/生产环境切换
+- 📋 **三种环境配置**：支持标准生产环境/低配环境/基础环境切换
 - 🔒 **生产环境强制校验**：生产环境必须配置强密码和安全密钥
-- 📊 **实时状态显示**：显示当前部署环境和配置建议
+- 📊 **实时状态显示**：显示当前部署环境、内存配置和配置建议
+- 💾 **低配优化**：专门针对小内存服务器的配置优化
+
+**环境选择**：
+```bash
+# 交互式选择：
+# 1) 标准生产环境 (Production - 2C4G+) [推荐]
+#    - 内存限制: API 768M, Web 768M, PostgreSQL 512M
+#    - 完整的资源限制和日志管理
+#
+# 2) 低配环境 (Low Memory - 1C1G/1C2G)
+#    - 内存限制: API 512M, Web 512M, PostgreSQL 256M
+#    - 启动时间较长，适合小流量场景
+#
+# 3) 基础环境 (Basic - 用于测试)
+#    - 无资源限制（仅用于本地测试，不推荐生产使用）
+#    - 暴露所有服务端口便于调试
+```
 
 脚本会自动执行：
-1. ✅ 选择部署环境（开发/生产）
+1. ✅ 选择部署环境（3 种配置可选）
 2. ✅ 检查 Docker 环境
 3. ✅ 初始化 `.env` 文件
 4. ✅ 验证配置安全性
@@ -182,9 +200,10 @@ web (3100) → api (7100) → postgres (5432)
 
 **优点**：
 - 自动化程度高，适合新手
-- 支持一键切换开发/生产环境
+- 支持一键切换多种环境配置
 - 包含配置验证和安全检查
 - 交互式引导，减少错误
+- 针对不同服务器配置优化
 
 ### 方式二：使用 Makefile
 
@@ -547,72 +566,88 @@ docker compose exec postgres psql -U postgres -d nodebbs
 \q               # 退出
 ```
 
-## 🔄 开发环境 vs 生产环境
+## 🔄 环境配置对比
 
 ### 配置文件说明
 
-项目使用 Docker Compose 覆盖配置方式：
-- **`docker-compose.yml`**: 基础配置（开发环境默认使用）
-- **`docker-compose.prod.yml`**: 生产环境覆盖配置（只包含差异部分）
+项目使用 Docker Compose 覆盖配置方式，提供三种环境配置：
+- **`docker-compose.yml`**: 基础配置（基础环境默认使用）
+- **`docker-compose.prod.yml`**: 标准生产环境覆盖配置（适合 2C4G+ 服务器）
+- **`docker-compose.lowmem.yml`**: 低配环境覆盖配置（适合 1C1G/1C2G 服务器）
 
 使用方式：
 ```bash
-# 开发环境（使用基础配置）
+# 基础环境（使用基础配置）
 docker compose up -d
 
-# 生产环境（合并基础配置 + 生产覆盖配置）
+# 标准生产环境（合并基础配置 + 生产覆盖配置）
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+# 低配环境（合并基础配置 + 低配覆盖配置）
+docker compose -f docker-compose.yml -f docker-compose.lowmem.yml up -d
 ```
 
-### 主要区别对比
+### 三种环境对比
 
-| 特性 | 开发环境 | 生产环境 |
-|------|---------|---------|
-| **端口暴露** | 全部暴露（便于调试） | 仅 API/Web（安全） |
-| **数据库端口** | 5432 → 5432 | 不暴露 |
-| **Redis 端口** | 6379 → 6379 | 不暴露 |
-| **源代码挂载** | ✓ 支持热重载 | ✗ 不挂载 |
-| **资源限制** | 无限制 | CPU/内存限制 |
-| **重启策略** | unless-stopped | always |
-| **日志管理** | 默认无限制 | 限制大小/数量 |
-| **Redis 配置** | 基础配置 | 最大内存+LRU策略 |
-| **缓存 TTL** | 120秒 | 300秒 |
-| **健康检查间隔** | 10-30秒 | 30秒 |
-| **启动等待时间** | 40秒 | 60秒 |
-| **网络配置** | 动态子网 | 固定子网 |
+| 特性 | 基础环境 | 低配环境 | 标准生产环境 |
+|------|---------|---------|------------|
+| **适用服务器** | 本地测试 | 1C1G/1C2G | 2C4G+ |
+| **API 内存限制** | 无限制 | 512M | 768M |
+| **Web 内存限制** | 无限制 | 512M | 768M |
+| **PostgreSQL 内存** | 无限制 | 256M | 512M |
+| **端口暴露** | 全部暴露 | 仅 API/Web | 仅 API/Web |
+| **数据库端口** | 5432 → 5432 | 不暴露 | 不暴露 |
+| **Redis 端口** | 6379 → 6379 | 不暴露 | 不暴露 |
+| **资源限制** | 无限制 | CPU/内存限制 | CPU/内存限制 |
+| **重启策略** | unless-stopped | always | always |
+| **日志管理** | 默认无限制 | 限制大小/数量 | 限制大小/数量 |
+| **Redis 配置** | 基础配置 | 最大内存+LRU | 最大内存+LRU |
+| **启动时间** | 较快 | 较慢 | 正常 |
+| **网络配置** | 动态子网 | 固定子网 | 固定子网 |
+| **生产推荐** | ❌ 仅测试 | ✅ 小流量 | ✅ 推荐 |
 
 ### 使用建议
 
-**开发环境适用场景**：
+**基础环境适用场景**：
 - 本地开发和调试
 - 需要频繁修改代码
 - 需要直接访问数据库和 Redis
 - 快速测试和迭代
+- ⚠️ **不推荐用于生产部署**
 
-**生产环境适用场景**：
-- 正式部署上线
-- 需要资源控制和优化
-- 需要更高的安全性
-- 需要稳定的服务运行
+**低配环境适用场景**：
+- 1C1G 或 1C2G 小型服务器
+- 个人项目或小流量网站
+- 预算有限的生产环境
+- 适度的并发访问
+- 启动时间较长，需耐心等待
+
+**标准生产环境适用场景**：
+- 2C4G 及以上配置服务器
+- 正式生产部署
+- 中等流量的网站和应用
+- 需要稳定性能和快速响应
+- **推荐用于生产环境**
 
 ### 环境切换
 
-#### 使用 deploy.sh
+#### 使用 deploy.sh（推荐）
 ```bash
 ./deploy.sh
 # 交互式选择环境：
-# 1) 开发环境 (Development)
-# 2) 生产环境 (Production)
+# 1) 标准生产环境 (Production - 2C4G+) [推荐]
+# 2) 低配环境 (Low Memory - 1C1G/1C2G)
+# 3) 基础环境 (Basic - 用于测试)
 ```
 
 #### 使用 Makefile
 ```bash
-# 开发环境
+# 基础环境（开发/测试）
 make up
 make logs
 make db-push
 
-# 生产环境
+# 生产环境（自动选择合适配置）
 ENV=prod make up
 ENV=prod make logs
 ENV=prod make db-push
@@ -620,15 +655,20 @@ ENV=prod make db-push
 
 #### 使用 Docker Compose
 ```bash
-# 开发环境
+# 基础环境
 docker compose up -d
 docker compose logs -f
 docker compose down
 
-# 生产环境
+# 标准生产环境
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f
 docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+
+# 低配环境
+docker compose -f docker-compose.yml -f docker-compose.lowmem.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.lowmem.yml logs -f
+docker compose -f docker-compose.yml -f docker-compose.lowmem.yml down
 ```
 
 ## 🐳 独立 Docker 部署
@@ -1237,12 +1277,20 @@ sudo certbot renew --dry-run
 # 运行部署脚本
 ./deploy.sh
 
-# 在交互界面中选择：
-# 2) 生产环境 (Production)
+# 在交互界面中根据服务器配置选择：
+# 1) 标准生产环境 (Production - 2C4G+) [推荐]
+#    - 适合 2C4G 及以上服务器
+#    - 内存配置: API 768M, Web 768M, PostgreSQL 512M
+#
+# 2) 低配环境 (Low Memory - 1C1G/1C2G)
+#    - 适合 1C1G 或 1C2G 小型服务器
+#    - 内存配置: API 512M, Web 512M, PostgreSQL 256M
+#    - 启动时间较长，请耐心等待
 
 # 脚本会自动：
-# - 检查生产环境配置的完整性
-# - 使用生产优化的 docker-compose 配置
+# - 检查生产环境配置的完整性和安全性
+# - 使用对应的 docker-compose 配置文件
+# - 构建并启动所有服务
 # - 初始化数据库
 ```
 
@@ -1264,8 +1312,11 @@ ENV=prod make health
 
 #### 方式三：手动使用 Docker Compose
 ```bash
-# 使用生产配置启动
+# 使用标准生产配置启动（2C4G+）
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+# 或使用低配环境启动（1C1G/1C2G）
+docker compose -f docker-compose.yml -f docker-compose.lowmem.yml up -d
 
 # 初始化数据库
 docker compose exec api npm run db:push
@@ -1276,11 +1327,13 @@ docker compose logs -f
 ```
 
 **生产环境特性**：
-- ✅ 数据库和 Redis 不对外暴露端口
+- ✅ 数据库和 Redis 不对外暴露端口（安全）
 - ✅ 启用资源限制（CPU/内存）
 - ✅ 配置日志管理（大小和数量限制）
 - ✅ 使用固定子网配置
 - ✅ 重启策略：always（自动重启）
+- ✅ 根据服务器配置自动调整内存分配
+- ✅ 低配环境专门优化，适合小内存服务器
 
 ### 6. 配置防火墙
 

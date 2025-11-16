@@ -76,18 +76,24 @@ A modern, high-performance forum platform built with Turborepo monorepo architec
 ./deploy.sh
 
 # Interactive environment selection:
-# 1) Development Environment - For local development
-# 2) Production Environment - For production deployment
+# 1) Standard Production (Production - 2C4G+) [Recommended]
+# 2) Low Memory Environment (Low Memory - 1C1G/1C2G)
+# 3) Basic Environment (Basic - for testing)
 ```
 
 The script will:
-- Select deployment environment (dev/prod)
+- Select deployment environment (3 configuration options available)
 - Check Docker environment
 - Initialize `.env` file
 - Validate configuration (mandatory security checks for production)
 - Build images
 - Start services
 - Initialize database
+
+**Environment Overview**:
+- **Standard Production**: Memory config API 768M, Web 768M, suitable for 2C4G+ servers
+- **Low Memory**: Memory config API 512M, Web 512M, suitable for 1C1G/1C2G servers
+- **Basic**: No resource limits, for local testing only
 
 ### Method 2: Using Makefile
 
@@ -280,8 +286,9 @@ nodebbs/
 │       └── package.json
 ├── packages/                # Shared packages (future)
 ├── scripts/                 # Deployment scripts
-├── docker-compose.yml       # Docker Compose config
-├── docker-compose.prod.yml  # Production config
+├── docker-compose.yml       # Docker Compose base config
+├── docker-compose.prod.yml  # Standard production config
+├── docker-compose.lowmem.yml # Low memory config
 ├── Makefile                 # Command shortcuts
 ├── deploy.sh                # Auto deployment script
 ├── nginx.conf.example       # Nginx configuration template
@@ -321,7 +328,8 @@ sudo nginx -t && sudo nginx -s reload
 # Run deployment script
 ./deploy.sh
 
-# Select: 2) Production Environment
+# Select: 1) Standard Production (Production - 2C4G+)
+# Or: 2) Low Memory Environment (Low Memory - 1C1G/1C2G)
 ```
 
 **Method 2: Using Makefile**

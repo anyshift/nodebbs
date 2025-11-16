@@ -76,18 +76,24 @@
 ./deploy.sh
 
 # 交互式选择环境：
-# 1) 开发环境 (Development) - 适合本地开发
-# 2) 生产环境 (Production) - 适合正式部署
+# 1) 标准生产环境 (Production - 2C4G+) [推荐]
+# 2) 低配环境 (Low Memory - 1C1G/1C2G)
+# 3) 基础环境 (Basic - 用于测试)
 ```
 
 该脚本会自动：
-- 选择部署环境（开发/生产）
+- 选择部署环境（支持 3 种配置）
 - 检查 Docker 环境
 - 初始化 `.env` 文件
 - 验证配置（生产环境强制安全检查）
 - 构建镜像
 - 启动服务
 - 初始化数据库
+
+**环境说明**：
+- **标准生产环境**：内存配置 API 768M, Web 768M，适合 2C4G+ 服务器
+- **低配环境**：内存配置 API 512M, Web 512M，适合 1C1G/1C2G 服务器
+- **基础环境**：无资源限制，仅用于本地测试
 
 ### 方式二：使用 Makefile
 
@@ -280,8 +286,9 @@ nodebbs/
 │       └── package.json
 ├── packages/                # 共享包（未来）
 ├── scripts/                 # 部署脚本
-├── docker-compose.yml       # Docker Compose 配置
-├── docker-compose.prod.yml  # 生产环境配置
+├── docker-compose.yml       # Docker Compose 基础配置
+├── docker-compose.prod.yml  # 标准生产环境配置
+├── docker-compose.lowmem.yml # 低配环境配置
 ├── Makefile                 # 命令快捷方式
 ├── deploy.sh                # 自动部署脚本
 ├── nginx.conf.example       # Nginx 配置模板
@@ -321,7 +328,8 @@ sudo nginx -t && sudo nginx -s reload
 # 使用部署脚本
 ./deploy.sh
 
-# 选择：2) 生产环境 (Production)
+# 选择：1) 标准生产环境 (Production - 2C4G+)
+# 或者：2) 低配环境 (Low Memory - 1C1G/1C2G)
 ```
 
 **方式二：使用 Makefile**
