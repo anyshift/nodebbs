@@ -27,6 +27,7 @@ export default async function oauthRoutes(fastify, options) {
   fastify.get(
     '/providers',
     {
+      preHandler: [fastify.optionalAuth],
       schema: {
         tags: ['oauth'],
         description: '获取 OAuth 提供商配置',

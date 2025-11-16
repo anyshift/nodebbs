@@ -16,6 +16,7 @@ export default async function emailRoutes(fastify, options) {
   fastify.get(
     '/providers',
     {
+      preHandler: [fastify.optionalAuth],
       schema: {
         tags: ['email'],
         description: '获取邮件服务提供商配置',
