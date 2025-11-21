@@ -110,7 +110,7 @@ export default function OAuthCallback() {
     if (provider) {
       handleCallback();
     }
-  }, [provider, searchParams, router, updateUser]);
+  }, []); // 只在组件挂载时执行一次
 
   return (
     <div className="flex items-center justify-center mt-40">

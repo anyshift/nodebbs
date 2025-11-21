@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { authApi } from '@/lib/api';
 import LoginDialog from '@/components/forum/LoginDialog';
 
@@ -34,7 +34,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   // 检查认证状态
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
       setLoading(true);
       const currentUser = await authApi.getCurrentUser();
@@ -46,10 +46,10 @@ export function AuthProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // 登录（支持用户名或邮箱）
-  const login = async (identifier, password) => {
+  const login = useCallback(async (identifier, password) => {
     try {
       setError(null);
       const response = await authApi.login(identifier, password);
@@ -61,10 +61,10 @@ export function AuthProvider({ children }) {
       setError(err.message || '登录失败');
       return { success: false, error: err.message };
     }
-  };
+  }, []);
 
   // 注册
-  const register = async (data) => {
+  const register = useCallback(async (data) => {
     try {
       setError(null);
       const response = await authApi.register(data);
@@ -76,22 +76,22 @@ export function AuthProvider({ children }) {
       setError(err.message || '注册失败');
       return { success: false, error: err.message };
     }
-  };
+  }, []);
 
   // 登出
-  const logout = () => {
+  const logout = useCallback(() => {
     authApi.logout();
     setUser(null);
     setError(null);
-  };
+  }, []);
 
   // 更新用户信息
-  const updateUser = (userData) => {
+  const updateUser = useCallback((userData) => {
     setUser((prev) => ({ ...prev, ...userData }));
-  };
+  }, []);
 
   // 刷新用户信息
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
       const currentUser = await authApi.getCurrentUser();
       setUser(currentUser);
@@ -100,10 +100,10 @@ export function AuthProvider({ children }) {
       console.error('Failed to refresh user:', err);
       return null;
     }
-  };
+  }, []);
 
   // 设置认证数据（用于扫码登录等外部认证成功后）
-  const setAuthData = (token, userData) => {
+  const setAuthData = useCallback((token, userData) => {
     // 设置 token 到 apiClient 和 localStorage
     const { default: apiClient } = require('@/lib/api');
     apiClient.setToken(token);
@@ -111,13 +111,13 @@ export function AuthProvider({ children }) {
     setUser(userData);
     // 关闭登录对话框
     setLoginDialogOpen(false);
-  };
+  }, []);
 
   // 登录对话框控制
-  const openLoginDialog = () => setLoginDialogOpen(true);
-  const closeLoginDialog = () => setLoginDialogOpen(false);
+  const openLoginDialog = useCallback(() => setLoginDialogOpen(true), []);
+  const closeLoginDialog = useCallback(() => setLoginDialogOpen(false), []);
 
-  const value = {
+  const value = useMemo(() => ({
     // 认证相关
     user,
     loading,
@@ -133,7 +133,7 @@ export function AuthProvider({ children }) {
     // 登录对话框相关
     openLoginDialog,
     closeLoginDialog,
-  };
+  }), [user, loading, error, login, register, logout, updateUser, checkAuth, refreshUser, setAuthData, openLoginDialog, closeLoginDialog]);
 
   return (
     <AuthContext.Provider value={value}>
