@@ -34,6 +34,15 @@ export function OAuthSettings() {
     }
   };
 
+  // 局部更新单个 provider，避免重新请求接口
+  const updateProvider = (providerName, updates) => {
+    setProviders((prev) =>
+      prev.map((p) =>
+        p.provider === providerName ? { ...p, ...updates } : p
+      )
+    );
+  };
+
   if (loading) {
     return <Loading text='加载中...' className='min-h-[200px]' />;
   }
@@ -48,7 +57,7 @@ export function OAuthSettings() {
         <OAuthProviderCard
           key={provider.id}
           provider={provider}
-          onUpdate={fetchProviders}
+          onUpdate={updateProvider}
           editingProvider={editingProvider}
           setEditingProvider={setEditingProvider}
           testingProvider={testingProvider}
@@ -84,7 +93,8 @@ function OAuthProviderCard({
       await oauthConfigApi.updateProvider(provider.provider, formData);
       toast.success(`${provider.displayName} 配置已保存`);
       setEditingProvider(null);
-      onUpdate();
+      // 局部更新状态，无需重新请求接口
+      onUpdate(provider.provider, formData);
     } catch (error) {
       console.error('Failed to update OAuth provider:', error);
       toast.error('保存配置失败');
@@ -114,7 +124,8 @@ function OAuthProviderCard({
     try {
       await oauthConfigApi.updateProvider(provider.provider, { isEnabled: checked });
       toast.success(checked ? `${provider.displayName} 已启用` : `${provider.displayName} 已禁用`);
-      onUpdate();
+      // 局部更新状态，无需重新请求接口
+      onUpdate(provider.provider, { isEnabled: checked });
     } catch (error) {
       console.error('Failed to toggle OAuth provider:', error);
       toast.error('操作失败');
