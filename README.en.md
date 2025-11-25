@@ -154,7 +154,7 @@ cd ../web && cp .env.example .env
 
 # 3. Setup database
 cd ../api
-pnpm db:push:dev
+pnpm db:push
 pnpm seed
 
 # 4. Start development servers

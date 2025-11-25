@@ -196,7 +196,7 @@ cd ../web && cp .env.example .env
 
 # 3. 设置数据库
 cd ../api
-pnpm db:push:dev
+pnpm db:push
 pnpm seed
 
 # 4. 启动开发服务器

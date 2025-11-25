@@ -702,7 +702,7 @@ docker run -d \
 docker exec -it nodebbs-api sh
 
 # 推送数据库 schema
-npm run db:push:dev
+npm run db:push
 
 # 初始化种子数据
 npm run seed
