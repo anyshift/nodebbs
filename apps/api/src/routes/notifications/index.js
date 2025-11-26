@@ -44,6 +44,7 @@ export default async function notificationRoutes(fastify, options) {
         message: notifications.message,
         isRead: notifications.isRead,
         createdAt: notifications.createdAt,
+        triggeredByUserId: notifications.triggeredByUserId,
         triggeredByUsername: users.username,
         triggeredByAvatar: users.avatar,
         topicId: notifications.topicId,

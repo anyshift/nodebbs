@@ -112,6 +112,8 @@ export default function NotificationPopover() {
         return <Heart className='h-4 w-4 text-red-500' />;
       case 'follow':
         return <UserPlus className='h-4 w-4 text-green-500' />;
+      case 'message':
+        return <MessageCircle className='h-4 w-4 text-blue-500' />;
       default:
         return <Bell className='h-4 w-4' />;
     }
@@ -145,6 +147,8 @@ export default function NotificationPopover() {
           : '在回复中提到了你';
       case 'follow':
         return '关注了你';
+      case 'message':
+        return '给你发送了一条新消息';
       case 'report_resolved':
         return '你的举报已处理';
       case 'report_dismissed':
@@ -201,11 +205,16 @@ export default function NotificationPopover() {
             <div className='divide-y divide-border'>
               {notifications.map((notification) => {
                 // 生成跳转链接
-                const linkUrl = notification.topicId
-                  ? `/topic/${notification.topicId}${
-                      notification.postId ? `#post-${notification.postId}` : ''
-                    }`
-                  : null;
+                let linkUrl = null;
+                if (notification.type === 'message' && notification.triggeredByUserId) {
+                  // 消息类型：跳转到与发送者的消息对话
+                  linkUrl = `/profile/messages/${notification.triggeredByUserId}`;
+                } else if (notification.topicId) {
+                  // 其他类型：跳转到对应的话题/帖子
+                  linkUrl = `/topic/${notification.topicId}${
+                    notification.postId ? `#post-${notification.postId}` : ''
+                  }`;
+                }
 
                 return (
                   <div
