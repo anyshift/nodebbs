@@ -28,6 +28,7 @@ import ReportDialog from '@/components/moderation/ReportDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { postApi } from '@/lib/api';
 import { toast } from 'sonner';
+import MarkdownRender from '../common/MarkdownRender';
 
 export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded }) {
   const { user, isAuthenticated, openLoginDialog } = useAuth();
@@ -412,10 +413,8 @@ export default function ReplyItem({ reply, topicId, onDeleted, onReplyAdded }) {
             )}
 
             {/* 回复内容 */}
-            <div className='prose prose-base max-w-none'>
-              <p className='text-foreground leading-relaxed whitespace-pre-wrap text-base mb-0'>
-                {localReply.content}
-              </p>
+            <div className='max-w-none prose prose-stone dark:prose-invert'>
+              <MarkdownRender content={localReply.content} />
             </div>
           </div>
         </div>
