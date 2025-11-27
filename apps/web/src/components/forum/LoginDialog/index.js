@@ -227,6 +227,19 @@ export default function LoginDialog({ open, onOpenChange }) {
     }
   };
 
+  // 检查注册表单是否有内容
+  const hasRegisterFormContent = () => {
+    if (mode !== 'register') return false;
+    return !!(
+      formData.username ||
+      formData.email ||
+      formData.password ||
+      formData.confirmPassword ||
+      formData.name ||
+      formData.invitationCode
+    );
+  };
+
   const handleOpenChange = (isOpen) => {
     // 当对话框关闭时，重置表单
     if (!isOpen) {
@@ -248,6 +261,15 @@ export default function LoginDialog({ open, onOpenChange }) {
     onOpenChange?.(isOpen);
   };
 
+  // 处理点击遮罩的事件
+  const handleInteractOutside = (e) => {
+    // 如果注册表单有内容，阻止关闭
+    if (hasRegisterFormContent()) {
+      e.preventDefault();
+      // toast.info('表单中有未保存的内容，请先完成注册或清空表单');
+    }
+  };
+
   const handleModeChange = (newMode) => {
     setMode(newMode);
     setError('');
@@ -265,7 +287,7 @@ export default function LoginDialog({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px]" onInteractOutside={handleInteractOutside}>
         <DialogHeader>
           <DialogTitle>
             {isForgotPassword ? '找回密码' : isLogin ? '登录' : '注册'}
