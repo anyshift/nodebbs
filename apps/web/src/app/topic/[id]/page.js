@@ -38,16 +38,16 @@ export default async function TopicDetailPage({ params, searchParams }) {
   const currentPage = parseInt(resolvedSearchParams.p) || 1;
   const LIMIT = 20;
 
-  // 并行获取话题和回复数据
-  const [topic, postsData] = await Promise.all([
-    getTopicData(id),
-    getPostsData(id, currentPage, LIMIT),
-  ]);
+  // 优化：先获取话题数据（利用 Next.js 自动去重与 generateMetadata 的请求）
+  const topic = await getTopicData(id);
 
-  // 话题不存在
+  // 话题不存在，立即返回 404，避免浪费 posts 请求
   if (!topic) {
     notFound();
   }
+
+  // 话题存在后，再获取回复数据
+  const postsData = await getPostsData(id, currentPage, LIMIT);
 
   const posts = postsData.items || [];
   const totalPosts = postsData.total || 0;

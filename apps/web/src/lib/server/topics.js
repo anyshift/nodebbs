@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { request } from '@/lib/server/api';
 
 /**
@@ -121,10 +122,11 @@ export async function getStatsData() {
 
 /**
  * 服务端获取单个话题数据
+ * 使用 React cache 确保同一渲染周期内的重复请求被去重
  * @param {number|string} id - 话题ID
  * @returns {Promise<Object|null>} 话题数据
  */
-export async function getTopicData(id) {
+export const getTopicData = cache(async (id) => {
   try {
     const data = await request(`/api/topics/${id}`);
     return data;
@@ -132,7 +134,7 @@ export async function getTopicData(id) {
     console.error('Error fetching topic:', error);
     return null;
   }
-}
+});
 
 /**
  * 服务端获取话题回复数据
