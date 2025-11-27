@@ -2,9 +2,6 @@ import { getCategoriesData, getStatsData } from '@/lib/server/topics';
 import { Sidebar } from '@/components/forum/Sidebar';
 import StickySidebar from '@/components/forum/StickySidebar';
 
-// 强制动态渲染，因为需要读取 cookies
-export const dynamic = 'force-dynamic';
-
 export default async function HomeLayout({ children }) {
   // 并行获取分类和统计数据
   const [categories, stats] = await Promise.all([

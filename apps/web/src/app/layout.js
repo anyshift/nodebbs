@@ -17,6 +17,9 @@ import Footer from '@/components/forum/Footer';
 import EmailVerificationBanner from '@/components/auth/EmailVerificationBanner';
 import { request } from '@/lib/server/api';
 
+// 强制动态渲染，因为需要读取 cookies
+export const dynamic = 'force-dynamic';
+
 const $title = 'NodeBBS';
 const $description = '一个基于 Node.js 和 React 的现代化论坛系统';
 
