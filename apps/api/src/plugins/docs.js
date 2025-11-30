@@ -19,7 +19,7 @@ async function docsPlugin(fastify, opts) {
         },
         {
           url: 'https://nodebbs.com',
-          description: '正式环境',
+          description: 'NodeBBS 官方服务器',
         },
       ],
       tags: [
