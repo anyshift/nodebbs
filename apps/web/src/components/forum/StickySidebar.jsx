@@ -18,19 +18,20 @@ import { ChevronRight, X } from 'lucide-react';
 
 export default function StickySidebar({ children, className, enabled = true }) {
   const [mounted, setMounted] = useState(false);
+  const [open, setOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(true);
 
   useEffect(() => {
     setMounted(true);
-    
+
     // 客户端检查屏幕尺寸
     const checkDesktop = () => {
       setIsDesktop(window.innerWidth >= 768);
     };
-    
+
     checkDesktop();
     window.addEventListener('resize', checkDesktop);
-    
+
     return () => window.removeEventListener('resize', checkDesktop);
   }, []);
 
@@ -44,7 +45,7 @@ export default function StickySidebar({ children, className, enabled = true }) {
   }
 
   return (
-    <Drawer direction='left'>
+    <Drawer direction='left' open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>
         <Button variant='outline' size='icon'>
           <ChevronRight className='h-6 w-6' />
@@ -59,7 +60,17 @@ export default function StickySidebar({ children, className, enabled = true }) {
           </DrawerTitle>
         </DrawerHeader>
         {/* 移动端覆盖样式 */}
-        <div className={cn(className, 'p-4 static overflow-y-auto')}>{children}</div>
+        <div
+          className={cn(className, 'p-4 static overflow-y-auto')}
+          onClick={(e) => {
+            const link = e.target.closest('a');
+            if (link) {
+              setOpen(false);
+            }
+          }}
+        >
+          {children}
+        </div>
       </DrawerContent>
     </Drawer>
   );
