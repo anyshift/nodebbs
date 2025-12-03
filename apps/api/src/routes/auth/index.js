@@ -1006,9 +1006,24 @@ export default async function authRoutes(fastify, options) {
           return reply.code(401).send({ error: '需要登录后才能执行此操作' });
         }
 
-        // 校验 identifier 是否存在
-        if (!identifier) {
-          return reply.code(400).send({ error: `请输入${config.channel === VerificationChannel.EMAIL ? '邮箱地址' : '手机号'}` });
+        // 根据渠道验证标识符格式
+        const isEmailChannel = config.channel === VerificationChannel.EMAIL;
+        const isSmsChannel = config.channel === VerificationChannel.SMS;
+
+        if (isEmailChannel) {
+          // 邮件渠道：验证邮箱格式
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(identifier)) {
+            return reply.code(400).send({ error: '请输入有效的邮箱地址' });
+          }
+        } else if (isSmsChannel) {
+          // 短信渠道：验证手机号格式（中国大陆）
+          const phoneRegex = /^1[3-9]\d{9}$/;
+          if (!phoneRegex.test(identifier)) {
+            return reply
+              .code(400)
+              .send({ error: '请输入有效的手机号（仅支持中国大陆手机号）' });
+          }
         }
 
         // 验证验证码
