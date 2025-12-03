@@ -133,12 +133,6 @@ export function QRLoginTab({ onSuccess }) {
               includeMargin
               className="border-4 border-border rounded-lg"
             />
-            {/* 倒计时覆盖层 */}
-            <div className="absolute bottom-2 left-0 right-0 text-center">
-              <span className="bg-background/80 px-2 py-1 rounded text-sm font-medium">
-                {formatCountdown(countdown)}
-              </span>
-            </div>
           </div>
         )}
 

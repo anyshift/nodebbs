@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
-import { settingsApi, authApi, invitationsApi, oauthConfigApi } from '@/lib/api';
+import { settingsApi, invitationsApi, oauthConfigApi } from '@/lib/api';
 import { toast } from 'sonner';
 
 // 导入子组件
@@ -101,45 +101,10 @@ export default function LoginDialog({ open, onOpenChange }) {
     setSuccess('');
   };
 
-  const handleForgotPassword = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-
-    if (!formData.email) {
-      setError('请输入邮箱地址');
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const data = await authApi.forgotPassword(formData.email);
-      setSuccess(data.message || '密码重置链接已发送到您的邮箱，请查收');
-      toast.success('密码重置链接已发送到您的邮箱');
-      // 3秒后切换回登录
-      setTimeout(() => {
-        setMode('login');
-        setSuccess('');
-      }, 3000);
-    } catch (err) {
-      const errorMsg = err.message || '发送失败，请稍后重试';
-      setError(errorMsg);
-      toast.error(errorMsg);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
-
-    // 找回密码使用单独的处理函数
-    if (isForgotPassword) {
-      return handleForgotPassword(e);
-    }
 
     // 验证
     if (isLogin) {
@@ -287,7 +252,7 @@ export default function LoginDialog({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[500px]" onInteractOutside={handleInteractOutside}>
+      <DialogContent className="sm:max-w-[450px]" onInteractOutside={handleInteractOutside}>
         <DialogHeader>
           <DialogTitle>
             {isForgotPassword ? '找回密码' : isLogin ? '登录' : '注册'}
@@ -337,12 +302,10 @@ export default function LoginDialog({ open, onOpenChange }) {
             {/* 找回密码表单 */}
             {isForgotPassword && (
               <ForgotPasswordForm
-                formData={formData}
-                error={error}
-                success={success}
-                isLoading={isLoading}
-                onSubmit={handleForgotPassword}
-                onChange={handleChange}
+                onSuccess={() => {
+                  setMode('login');
+                  toast.success('密码重置成功，请使用新密码登录');
+                }}
               />
             )}
 

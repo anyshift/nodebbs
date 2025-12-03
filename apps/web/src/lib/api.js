@@ -141,24 +141,14 @@ export const authApi = {
     return apiClient.get('/auth/me');
   },
 
-  // 忘记密码
-  async forgotPassword(email) {
-    return apiClient.post('/auth/forgot-password', { email });
+  // 使用验证码重置密码
+  async resetPassword(email, code, password) {
+    return apiClient.post('/auth/reset-password', { email, code, password });
   },
 
-  // 重置密码
-  async resetPassword(token, password) {
-    return apiClient.post('/auth/reset-password', { token, password });
-  },
-
-  // 验证邮箱
-  async verifyEmail(token) {
-    return apiClient.post('/auth/verify-email', { token });
-  },
-
-  // 重新发送验证邮件
-  async resendVerification() {
-    return apiClient.post('/auth/resend-verification');
+  // 使用验证码验证邮箱
+  async verifyEmail(code) {
+    return apiClient.post('/auth/verify-email', { code });
   },
 
   // 发送验证码（统一接口）

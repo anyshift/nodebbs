@@ -1,12 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Mail, Lock, Loader2 } from 'lucide-react';
-import { authApi } from '@/lib/api';
-import { toast } from 'sonner';
+import { EmailVerificationDialog } from '@/components/auth/EmailVerificationDialog';
 
 export function SecurityTab({
   user,
@@ -14,7 +14,10 @@ export function SecurityTab({
   onPasswordChange,
   onPasswordSubmit,
   changingPassword,
+  onEmailVerified, // 邮箱验证成功后的回调
 }) {
+  const [showEmailVerifyDialog, setShowEmailVerifyDialog] = useState(false);
+
   return (
     <div className='space-y-6'>
       {/* 邮箱验证 */}
@@ -48,22 +51,23 @@ export function SecurityTab({
                 type='button'
                 variant='outline'
                 size='sm'
-                onClick={async () => {
-                  try {
-                    const data = await authApi.resendVerification();
-                    toast.success(data.message || '验证邮件已发送');
-                  } catch (err) {
-                    toast.error(err.message || '发送失败');
-                  }
-                }}
+                onClick={() => setShowEmailVerifyDialog(true)}
               >
-                <Mail className='h-4 w-4' />
-                发送验证邮件
+                <Mail className='h-4 w-4 mr-1' />
+                验证邮箱
               </Button>
             )}
           </div>
         </div>
       </div>
+
+      {/* 邮箱验证对话框 */}
+      <EmailVerificationDialog
+        open={showEmailVerifyDialog}
+        onOpenChange={setShowEmailVerifyDialog}
+        user={user}
+        onVerified={onEmailVerified}
+      />
 
       {/* 修改密码 */}
       <form onSubmit={onPasswordSubmit} className='space-y-6'>
@@ -122,12 +126,12 @@ export function SecurityTab({
           <Button type='submit' disabled={changingPassword}>
             {changingPassword ? (
               <>
-                <Loader2 className='h-4 w-4 animate-spin' />
+                <Loader2 className='h-4 w-4 animate-spin mr-2' />
                 修改中...
               </>
             ) : (
               <>
-                <Lock className='h-4 w-4' />
+                <Lock className='h-4 w-4 mr-2' />
                 修改密码
               </>
             )}

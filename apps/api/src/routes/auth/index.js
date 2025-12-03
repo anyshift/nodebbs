@@ -213,43 +213,10 @@ export default async function authRoutes(fastify, options) {
         })
         .returning();
 
-      // 先检查邮件服务是否配置，避免创建无用的验证码
-      const emailProvider = await fastify.getDefaultEmailProvider();
-
-      if (!emailProvider || !emailProvider.isEnabled) {
-        // 邮件服务未配置，记录警告但不阻止注册
-        fastify.log.warn(`[注册] 邮件服务未配置或未启用，跳过发送欢迎邮件和验证链接`);
-      } else {
-        // 创建邮箱验证码
-        const verificationToken = await createEmailVerification(
-          email,
-          newUser.id
-        );
-
-        // 发送欢迎邮件 + 邮箱验证链接
-        try {
-          await fastify.sendEmail({
-            to: email,
-            template: 'welcome',
-            data: {
-              username: newUser.username,
-              verificationLink: `${
-                process.env.APP_URL || 'http://localhost:3000'
-              }/verify-email?token=${verificationToken}`,
-            },
-          });
-          fastify.log.info(`[注册] 欢迎邮件已发送至 ${email}`);
-        } catch (error) {
-          // 邮件发送失败不应阻止注册流程
-          fastify.log.error(`[注册] 发送欢迎邮件失败: ${error.message}`);
-          // 开发环境下，在日志中显示验证链接
-          fastify.log.info(
-            `[注册] 验证链接: ${
-              process.env.APP_URL || 'http://localhost:3000'
-            }/verify-email?token=${verificationToken}`
-          );
-        }
-      }
+      // 注册成功后，不再发送邮件
+      // 用户需要使用 /auth/send-code (type: email_register) 获取验证码
+      // 然后使用 /auth/verify-email-with-code 验证邮箱
+      fastify.log.info(`[注册] 用户 ${email} 注册成功，等待邮箱验证`);
 
       // 如果使用了邀请码，标记为已使用
       if (registrationMode === 'invitation' && invitationCode) {
@@ -411,97 +378,19 @@ export default async function authRoutes(fastify, options) {
     }
   );
 
-  // Request password reset
-  fastify.post(
-    '/forgot-password',
-    {
-      schema: {
-        tags: ['auth'],
-        description: '请求密码重置',
-        body: {
-          type: 'object',
-          required: ['email'],
-          properties: {
-            email: { type: 'string', format: 'email' },
-          },
-        },
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              message: { type: 'string' },
-            },
-          },
-        },
-      },
-    },
-    async (request, reply) => {
-      const { email } = request.body;
-
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, email))
-        .limit(1);
-
-      // Always return success to prevent email enumeration
-      if (!user) {
-        return { message: '如果邮箱存在，密码重置链接已发送' };
-      }
-
-      // 先检查邮件服务是否配置，避免创建无用的验证码
-      const emailProvider = await fastify.getDefaultEmailProvider();
-
-      if (!emailProvider || !emailProvider.isEnabled) {
-        // 邮件服务未配置，记录错误但返回成功消息（防止邮箱枚举）
-        fastify.log.error(`[密码重置] 邮件服务未配置或未启用，无法发送重置邮件至 ${email}`);
-        return { message: '如果邮箱存在，密码重置链接已发送' };
-      }
-
-      // 创建密码重置验证码
-      const resetToken = await createPasswordReset(email, user.id);
-
-      // 发送密码重置邮件
-      try {
-        await fastify.sendEmail({
-          to: email,
-          template: 'password-reset',
-          data: {
-            username: user.username,
-            resetLink: `${
-              process.env.APP_URL || 'http://localhost:3000'
-            }/reset-password?token=${resetToken}`,
-            expiresIn: '1小时',
-          },
-        });
-        fastify.log.info(`[密码重置] 重置邮件已发送至 ${email}`);
-      } catch (error) {
-        fastify.log.error(`[密码重置] 发送邮件失败: ${error.message}`);
-        // 开发环境下，在日志中显示重置链接
-        fastify.log.info(
-          `[密码重置] 重置链接: ${
-            process.env.APP_URL || 'http://localhost:3000'
-          }/reset-password?token=${resetToken}`
-        );
-        return reply.code(500).send({ error: error.message || '发送邮件失败' });
-      }
-
-      return { message: '如果邮箱存在，密码重置链接已发送' };
-    }
-  );
-
-  // Reset password
+  // Reset password with verification code
   fastify.post(
     '/reset-password',
     {
       schema: {
         tags: ['auth'],
-        description: '使用令牌重置密码',
+        description: '使用验证码重置密码',
         body: {
           type: 'object',
-          required: ['token', 'password'],
+          required: ['email', 'code', 'password'],
           properties: {
-            token: { type: 'string' },
+            email: { type: 'string', format: 'email' },
+            code: { type: 'string', description: '6位验证码' },
             password: { type: 'string', minLength: 6 },
           },
         },
@@ -516,46 +405,65 @@ export default async function authRoutes(fastify, options) {
       },
     },
     async (request, reply) => {
-      const { token, password } = request.body;
+      const { email, code, password } = request.body;
 
-      // 验证 token
-      const verification = await verifyToken(
-        token,
-        VerificationType.PASSWORD_RESET
+      // 验证验证码
+      const result = await verifyCode(
+        email.toLowerCase(),
+        code,
+        VerificationCodeType.EMAIL_PASSWORD_RESET
       );
 
-      if (!verification || !verification.userId) {
-        return reply.code(400).send({ error: '重置令牌无效或已过期' });
+      if (!result.valid) {
+        return reply.code(400).send({
+          error: result.error || '验证码错误或已过期'
+        });
       }
 
-      const passwordHash = await fastify.hashPassword(password);
+      // 查找用户
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email.toLowerCase()))
+        .limit(1);
 
+      if (!user) {
+        return reply.code(404).send({ error: '用户不存在' });
+      }
+
+      // 更新密码
+      const passwordHash = await fastify.hashPassword(password);
       await db
         .update(users)
-        .set({
-          passwordHash,
-        })
-        .where(eq(users.id, verification.userId));
+        .set({ passwordHash })
+        .where(eq(users.id, user.id));
 
       // 删除已使用的验证码
-      await deleteVerification(token, VerificationType.PASSWORD_RESET, verification.identifier);
+      await deleteVerificationCode(email.toLowerCase(), VerificationCodeType.EMAIL_PASSWORD_RESET);
+
+      // 清除用户缓存
+      await fastify.clearUserCache(user.id);
+
+      fastify.log.info(`[密码重置] 用户 ${email} 使用验证码重置密码成功`);
 
       return { message: '密码重置成功' };
     }
   );
 
-  // Verify email
+  // Verify email with verification code
   fastify.post(
     '/verify-email',
     {
+      preHandler: [fastify.authenticate],
       schema: {
         tags: ['auth'],
-        description: '使用令牌验证邮箱',
+        description: '使用验证码验证邮箱',
+        security: [{ bearerAuth: [] }],
         body: {
           type: 'object',
-          required: ['token'],
+          required: ['code'],
           properties: {
-            token: { type: 'string' },
+            code: { type: 'string', description: '6位验证码' },
           },
         },
         response: {
@@ -578,87 +486,13 @@ export default async function authRoutes(fastify, options) {
       },
     },
     async (request, reply) => {
-      const { token } = request.body;
+      const { code } = request.body;
+      const userId = request.user.id;
 
-      // 验证 token
-      const verification = await verifyToken(
-        token,
-        VerificationType.EMAIL_VERIFICATION
-      );
-
-      if (!verification || !verification.userId) {
-        return reply.code(400).send({ error: '无效的验证链接' });
-      }
-
-      // 获取用户信息
       const [user] = await db
         .select()
         .from(users)
-        .where(eq(users.id, verification.userId))
-        .limit(1);
-
-      if (!user) {
-        return reply.code(400).send({ error: '用户不存在' });
-      }
-
-      if (user.isEmailVerified) {
-        return reply.code(400).send({ error: '邮箱已经验证过了' });
-      }
-
-      // Update user email verification status
-      const [updatedUser] = await db
-        .update(users)
-        .set({
-          isEmailVerified: true,
-        })
-        .where(eq(users.id, user.id))
-        .returning();
-
-      // 清除用户缓存，使邮箱验证状态立即生效
-      await fastify.clearUserCache(user.id);
-
-      // 删除已使用的验证码
-      await deleteVerification(token, VerificationType.EMAIL_VERIFICATION, verification.identifier);
-
-      // Remove sensitive data
-      delete updatedUser.passwordHash;
-
-      return {
-        message: '邮箱验证成功',
-        user: {
-          id: updatedUser.id,
-          username: updatedUser.username,
-          email: updatedUser.email,
-          isEmailVerified: updatedUser.isEmailVerified,
-        },
-      };
-    }
-  );
-
-  // Resend verification email
-  fastify.post(
-    '/resend-verification',
-    {
-      preHandler: [fastify.authenticate],
-      schema: {
-        tags: ['auth'],
-        description: '重新发送邮箱验证链接',
-        security: [{ bearerAuth: [] }],
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              message: { type: 'string' },
-            },
-          },
-        },
-      },
-    },
-    async (request, reply) => {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, request.user.id))
+        .where(eq(users.id, userId))
         .limit(1);
 
       if (!user) {
@@ -669,47 +503,45 @@ export default async function authRoutes(fastify, options) {
         return reply.code(400).send({ error: '邮箱已经验证过了' });
       }
 
-      // 先检查邮件服务是否配置
-      const emailProvider = await fastify.getDefaultEmailProvider();
-
-      if (!emailProvider || !emailProvider.isEnabled) {
-        fastify.log.warn(`[重发验证] 邮件服务未配置或未启用`);
-        return reply.code(503).send({
-          error: '邮件服务暂不可用，请联系管理员配置邮件服务'
-        });
-      }
-
-      // 创建新的验证码
-      const verificationToken = await createEmailVerification(
+      // 验证验证码
+      const result = await verifyCode(
         user.email,
-        user.id
+        code,
+        VerificationCodeType.EMAIL_VERIFY
       );
 
-      // 重新发送邮箱验证邮件
-      try {
-        await fastify.sendEmail({
-          to: user.email,
-          template: 'email-verification',
-          data: {
-            username: user.username,
-            verificationLink: `${
-              process.env.APP_URL || 'http://localhost:3000'
-            }/verify-email?token=${verificationToken}`,
-          },
+      if (!result.valid) {
+        return reply.code(400).send({
+          error: result.error || '验证码错误或已过期'
         });
-        fastify.log.info(`[重发验证] 验证邮件已发送至 ${user.email}`);
-      } catch (error) {
-        fastify.log.error(`[重发验证] 发送邮件失败: ${error.message}`);
-        // 开发环境下，在日志中显示验证链接
-        fastify.log.info(
-          `[重发验证] 验证链接: ${
-            process.env.APP_URL || 'http://localhost:3000'
-          }/verify-email?token=${verificationToken}`
-        );
-        return reply.code(500).send({ error: error.message || '发送邮件失败' });
       }
 
-      return { message: '验证邮件已发送，请查收' };
+      // 更新邮箱验证状态
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          isEmailVerified: true,
+        })
+        .where(eq(users.id, userId))
+        .returning();
+
+      // 删除已使用的验证码
+      await deleteVerificationCode(user.email, VerificationCodeType.EMAIL_VERIFY);
+
+      // 清除用户缓存
+      await fastify.clearUserCache(userId);
+
+      fastify.log.info(`[邮箱验证] 用户 ${user.email} 邮箱验证成功`);
+
+      return {
+        message: '邮箱验证成功',
+        user: {
+          id: updatedUser.id,
+          username: updatedUser.username,
+          email: updatedUser.email,
+          isEmailVerified: updatedUser.isEmailVerified,
+        },
+      };
     }
   );
 

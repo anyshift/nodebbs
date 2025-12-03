@@ -25,6 +25,9 @@ export const VerificationCodeType = {
   // 邮箱注册验证
   EMAIL_REGISTER: 'email_register',
 
+  // 邮箱验证（已注册用户验证邮箱）
+  EMAIL_VERIFY: 'email_verify',
+
   // 邮箱登录
   EMAIL_LOGIN: 'email_login',
 
@@ -84,6 +87,18 @@ export const VerificationCodeConfig = {
     maxRetries: 5,
     rateLimitSeconds: 60,
     description: '注册验证',
+    template: 'verification-code',
+  },
+
+  [VerificationCodeType.EMAIL_VERIFY]: {
+    channel: VerificationChannel.EMAIL,
+    digits: 6,
+    expiryMinutes: 10,
+    requireAuth: true,
+    userValidation: UserValidation.MUST_EXIST,
+    maxRetries: 5,
+    rateLimitSeconds: 60,
+    description: '邮箱验证',
     template: 'verification-code',
   },
 

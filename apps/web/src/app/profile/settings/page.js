@@ -444,6 +444,7 @@ export default function SettingsPage() {
             onPasswordChange={handlePasswordChange}
             onPasswordSubmit={handlePasswordSubmit}
             changingPassword={changingPassword}
+            onEmailVerified={checkAuth}
           />
         </TabsContent>
       </Tabs>
