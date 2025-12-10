@@ -548,8 +548,8 @@ export const moderationApi = {
   },
 
   // 获取举报列表 (版主/管理员)
-  async getReports(reportType = 'all', status = 'pending', page = 1, limit = 20) {
-    return apiClient.get('/moderation/reports', { reportType, status, page, limit });
+  async getReports(reportType = 'all', status = 'pending', page = 1, limit = 20, search = '') {
+    return apiClient.get('/moderation/reports', { reportType, status, page, limit, search });
   },
 
   // 处理举报 (版主/管理员)

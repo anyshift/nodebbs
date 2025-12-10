@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useDebounce } from '@uidotdev/usehooks';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DataTable } from '@/components/forum/DataTable';
@@ -51,6 +52,7 @@ export default function UsersManagement() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 500);
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedUser, setSelectedUser] = useState(null);
@@ -75,6 +77,14 @@ export default function UsersManagement() {
   const limit = 20;
 
   useEffect(() => {
+    if (page === 1) {
+      fetchUsers();
+    } else {
+      setPage(1);
+    }
+  }, [debouncedSearch]);
+
+  useEffect(() => {
     fetchFirstAdmin();
     fetchUsers();
   }, [page, roleFilter, statusFilter]);
@@ -92,7 +102,7 @@ export default function UsersManagement() {
     setLoading(true);
     try {
       const params = { page, limit };
-      if (search) params.search = search;
+      if (debouncedSearch) params.search = debouncedSearch;
       if (roleFilter !== 'all') params.role = roleFilter;
       if (statusFilter === 'banned') params.isBanned = true;
       if (statusFilter === 'active') params.isBanned = false;
@@ -481,13 +491,7 @@ export default function UsersManagement() {
         loading={loading}
         search={{
           value: search,
-          onChange: (value) => {
-            setSearch(value);
-            if (!value) {
-              setPage(1);
-              fetchUsers();
-            }
-          },
+          onChange: (value) => setSearch(value),
           placeholder: '搜索用户名、邮箱或姓名...',
         }}
         filter={{
