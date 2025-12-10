@@ -572,11 +572,6 @@ export const moderationApi = {
     return apiClient.patch(`/moderation/users/${id}/role`, { role });
   },
 
-  // 获取第一个管理员（创始人）信息
-  async getFirstAdmin() {
-    return apiClient.get('/moderation/first-admin');
-  },
-
   // ============= 内容审核 API =============
   // 获取待审核统计数据
   async getStat() {

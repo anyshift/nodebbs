@@ -63,7 +63,6 @@ export default function UsersManagement() {
   const [deleteType, setDeleteType] = useState('soft'); // 'soft' or 'hard'
   const [newRole, setNewRole] = useState('user');
   const [submitting, setSubmitting] = useState(false);
-  const [firstAdminId, setFirstAdminId] = useState(null);
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [dialogMode, setDialogMode] = useState('create'); // 'create' or 'edit'
   const [userForm, setUserForm] = useState({
@@ -85,18 +84,8 @@ export default function UsersManagement() {
   }, [debouncedSearch]);
 
   useEffect(() => {
-    fetchFirstAdmin();
     fetchUsers();
   }, [page, roleFilter, statusFilter]);
-
-  const fetchFirstAdmin = async () => {
-    try {
-      const data = await moderationApi.getFirstAdmin();
-      setFirstAdminId(data.id);
-    } catch (err) {
-      console.error('获取第一个管理员信息失败:', err);
-    }
-  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -289,18 +278,9 @@ export default function UsersManagement() {
     }
   };
 
-  // 检查用户是否是第一个管理员（创始人）
-  const isFirstAdmin = (user) => {
-    return user.role === 'admin' && user.id === firstAdminId;
-  };
-
   // 检查是否可以修改该用户
   const canModifyUser = (user) => {
-    // 不能修改第一个管理员
-    if (isFirstAdmin(user)) {
-      return false;
-    }
-    return true;
+    return !!user.canManage;
   };
 
   const getRoleLabel = (role) => {
@@ -374,7 +354,7 @@ export default function UsersManagement() {
                 <Badge variant={getRoleBadgeVariant(value)} className="text-xs">
                   {getRoleLabel(value)}
                 </Badge>
-                {isFirstAdmin(user) && (
+                {user.isFounder && (
                   <Badge variant="outline" className="text-xs">
                     创始人
                   </Badge>

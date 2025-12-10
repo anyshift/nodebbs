@@ -451,42 +451,7 @@ export default async function moderationRoutes(fastify, options) {
     return { message: '用户角色已更新', user: updated };
   });
 
-  // Get first admin (founder) info
-  fastify.get('/first-admin', {
-    preHandler: [fastify.requireAdmin],
-    schema: {
-      tags: ['moderation'],
-      description: '获取第一个管理员（创始人）信息',
-      security: [{ bearerAuth: [] }],
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            id: { type: 'number' },
-            username: { type: 'string' },
-            createdAt: { type: 'string' }
-          }
-        }
-      }
-    }
-  }, async (request, reply) => {
-    const [firstAdmin] = await db
-      .select({
-        id: users.id,
-        username: users.username,
-        createdAt: users.createdAt
-      })
-      .from(users)
-      .where(eq(users.role, 'admin'))
-      .orderBy(users.createdAt)
-      .limit(1);
 
-    if (!firstAdmin) {
-      return reply.code(404).send({ error: '未找到管理员' });
-    }
-
-    return firstAdmin;
-  });
 
   // ============= 内容审核接口 =============
 
