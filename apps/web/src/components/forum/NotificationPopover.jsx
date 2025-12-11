@@ -240,7 +240,7 @@ export default function NotificationPopover() {
                       {/* 用户头像 */}
                       <UserAvatar
                         url={notification.triggeredByAvatar}
-                        name={notification.triggeredByUsername}
+                        name={notification.triggeredByName || notification.triggeredByUsername}
                         size='sm'
                       />
 
@@ -251,7 +251,7 @@ export default function NotificationPopover() {
                           {getNotificationIcon(notification.type)}
                           {notification.triggeredByUsername && (
                             <span className='text-sm font-medium text-foreground'>
-                              {notification.triggeredByUsername}
+                              {notification.triggeredByName || notification.triggeredByUsername}
                             </span>
                           )}
                           <span className='text-sm text-muted-foreground'>
